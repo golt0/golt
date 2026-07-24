@@ -21,7 +21,7 @@ model Project {
   id           String        @id @default(cuid())
   name         String
   ownerId      String
-  sandboxId    String
+  sandboxId    String?
   previewUrl   String?
   sanboxStatus SandboxStatus @default(idle)
   createAt     DateTime      @default(now())
