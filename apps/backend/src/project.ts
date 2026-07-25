@@ -115,3 +115,4 @@ try {
 }
 })
 
+export default router;
