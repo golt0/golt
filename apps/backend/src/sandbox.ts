@@ -11,14 +11,11 @@ export async function ensureSandbox(projectId : string) {
         return existing;
     }
 
-    if(!existing) {
-        const sandboxPod = await prisma.sandboxPod.upsert({
-          where : {projectId},
-          update : {status : 'creating'},
-          create : {projectId, status : 'creating'}
-
-        })
-    }
+     await prisma.sandboxPod.upsert({
+      where: { projectId },
+      update: { status: 'creating' },
+      create: { projectId, status: 'creating' }
+   })
 
     const port = await findFreePort(4000, 5000);
     const containerId = await createAndStart(projectId, port);
