@@ -75,7 +75,7 @@ router.get("/", requireAuth , async (req , res, next) => {
 
 router.get("/:id" , requireAuth ,async (req , res, next) => {
   try {
-    const ownerId = (req as any) as string;
+    const ownerId = (req as any).ownerId as string;
   
     const project = await prisma.project.findUnique({
       where : {id : req.params.id}
