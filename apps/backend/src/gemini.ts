@@ -1,6 +1,201 @@
-import { GoogleGenAI , Type } from "@google/genai";
+// import { GoogleGenAI , Type } from "@google/genai";
 
-const ai = new GoogleGenAI({apiKey : process.env.GEMINI_KEY})
+// const ai = new GoogleGenAI({apiKey : process.env.GEMINI_KEY})
+
+// const SYSTEM_PROMPT = `You are an expert code generator.
+
+// RULES:
+// - Return ONLY the files that need to be created or modified
+// - Do NOT return files that are unchanged
+// - Do NOT add explanation, comments, or description outside of code
+// - Write complete, working code in every file
+// - Always wrap all files in <files> tag
+// - Each file must be in <file path="..."> tag
+
+// OUTPUT FORMAT (exactly):
+// <files>
+//   <file path="src/App.tsx">
+//     // code here
+//   </file>
+// </files>`;
+
+// export type GeneratedFile = {
+//     path : string,
+//     content : string
+// }
+
+// export async function generateCode(prompt : string , existringFiles : GeneratedFile[]) {
+//     const existingFilesContext = existringFiles.length > 0 ? `EXISTING PROJECT FILES (only return the if modifying them):
+//     ${existringFiles.map((f) => `path : ${f.path}\n${f.content}`).join(`\n\n--\n\n`)}`
+//     : "NO existing file - fresh project"
+
+//     const userMessage = `${existingFilesContext}
+//     USER REQUEST : ${prompt}`;
+
+//     const stream = await ai.models.generateContentStream({
+//         model : "gemini-2.0-flash",
+//         contents : userMessage,
+//         config : {
+//             systemInstruction : SYSTEM_PROMPT,
+//             temperature : 0.2,
+//             maxOutputTokens : 8192,
+//         },
+//     });
+//     return stream;
+// }
+// export function parseFiles(fullResponse : string) : GeneratedFile[] {
+//     const files : GeneratedFile[] = []
+
+//     const filesBlockMatch = fullResponse.match(/<files>([\s\S]*?)<\/files>/);
+//     if(!filesBlockMatch) {
+//         throw new Error("Response mein <files> tag is not found . Response:\n" + fullResponse.slice(0, 300))
+//     }
+//       const fileRegex = /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
+//       let match;
+
+//      while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
+//         files.push({
+//       path: match[1]!.trim(),
+//       content: match[2]!.replace(/^\n/, "").replace(/\n$/, ""),
+//     });
+//   }
+
+//   if (files.length === 0) {
+//     throw new Error("Koi file parse nahi hui");
+//   }
+
+//   return files;
+// }
+
+
+
+// import OpenAI from "openai";
+
+// const client = new OpenAI({
+//   apiKey: process.env.GROQ_API_KEY,
+//   baseURL: "https://api.groq.com/openai/v1",
+// });
+
+// const SYSTEM_PROMPT = `You are an expert code generator.
+
+// RULES:
+// - Return ONLY the files that need to be created or modified
+// - Do NOT return files that are unchanged
+// - Do NOT add explanation, comments, or description outside of code
+// - Write complete, working code in every file
+// - Always wrap all files in <files> tag
+// - Each file must be in <file path="..."> tag
+
+// OUTPUT FORMAT (exactly):
+// <files>
+//   <file path="src/App.tsx">
+//     // code here
+//   </file>
+// </files>`;
+
+// export type GeneratedFile = {
+//   path: string;
+//   content: string;
+// };
+
+// export async function generateCode(
+//   prompt: string,
+//   existingFiles: GeneratedFile[]
+// ) {
+//   const existingFilesContext =
+//     existingFiles.length > 0
+//       ? `EXISTING PROJECT FILES (only return them if modifying them):
+
+// ${existingFiles
+//   .map((f) => `path: ${f.path}\n${f.content}`)
+//   .join("\n\n--\n\n")}`
+//       : "NO existing file - fresh project";
+
+//   const userMessage = `${existingFilesContext}
+
+// USER REQUEST: ${prompt}`;
+
+//   const stream = await client.chat.completions.create({
+//     model: "llama-3.3-70b-versatile",
+//     stream: true,
+//     temperature: 0.2,
+//     max_tokens: 8192,
+//     messages: [
+//       {
+//         role: "system",
+//         content: SYSTEM_PROMPT,
+//       },
+//       {
+//         role: "user",
+//         content: userMessage,
+//       },
+//     ],
+//   });
+
+//   return stream;
+// }
+
+// export async function streamToText(
+//   stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+// ) {
+//   let fullResponse = "";
+
+//   for await (const chunk of stream) {
+//     const content = chunk.choices[0]?.delta?.content ?? "";
+
+//     fullResponse += content;
+
+//     process.stdout.write(content);
+//   }
+
+//   return fullResponse;
+// }
+
+// export function parseFiles(fullResponse: string): GeneratedFile[] {
+//   const files: GeneratedFile[] = [];
+
+//   const filesBlockMatch = fullResponse.match(
+//     /<files>([\s\S]*?)<\/files>/
+//   );
+
+//   if (!filesBlockMatch) {
+//     throw new Error(
+//       "Response mein <files> tag nahi mila.\n" +
+//         fullResponse.slice(0, 300)
+//     );
+//   }
+
+//   const fileRegex =
+//     /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
+
+//   let match: RegExpExecArray | null;
+
+//   while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
+//     files.push({
+//       path: match[1]!.trim(),
+//       content: match[2]!
+//         .replace(/^\n/, "")
+//         .replace(/\n$/, ""),
+//     });
+//   }
+
+//   if (files.length === 0) {
+//     throw new Error("Koi file parse nahi hui");
+//   }
+
+//   return files;
+// }
+
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "HTTP-Referer": "https://localhost:3000",
+    "X-Title": "Golt",
+  },
+});
 
 const SYSTEM_PROMPT = `You are an expert code generator.
 
@@ -20,43 +215,87 @@ OUTPUT FORMAT (exactly):
 </files>`;
 
 export type GeneratedFile = {
-    path : string,
-    content : string
+  path: string;
+  content: string;
+};
+
+export async function generateCode(
+  prompt: string,
+  existingFiles: GeneratedFile[]
+) {
+  const existingFilesContext =
+    existingFiles.length > 0
+      ? `EXISTING PROJECT FILES (only return them if modifying them):
+
+${existingFiles
+  .map((f) => `path: ${f.path}\n${f.content}`)
+  .join("\n\n--\n\n")}`
+      : "NO existing file - fresh project";
+
+  const userMessage = `${existingFilesContext}
+
+USER REQUEST: ${prompt}`;
+
+  const stream = await client.chat.completions.create({
+    model: "gpt-5-mini",
+    stream : true,
+    temperature: 0.2,
+    max_tokens: 8192,
+    messages: [
+      {
+        role: "system",
+        content: SYSTEM_PROMPT,
+      },
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ],
+  });
+
+  return stream;
 }
 
-export async function generateCode(prompt : string , existringFiles : GeneratedFile[]) {
-    const existingFilesContext = existringFiles.length > 0 ? `EXISTING PROJECT FILES (only return the if modifying them):
-    ${existringFiles.map((f) => `path : ${f.path}\n${f.content}`).join(`\n\n--\n\n`)}`
-    : "NO existing file - fresh project"
+export async function streamToText(
+  stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+) {
+  let fullResponse = "";
 
-    const userMessage = `${existingFilesContext}
-    USER REQUEST : ${prompt}`;
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content ?? "";
 
-    const stream = await ai.models.generateContentStream({
-        model : "gemini-2.0-flash",
-        contents : userMessage,
-        config : {
-            systemInstruction : SYSTEM_PROMPT,
-            temperature : 0.2,
-            maxOutputTokens : 8192,
-        },
-    });
-    return stream;
+    fullResponse += content;
+    process.stdout.write(content);
+  }
+
+  return fullResponse;
 }
-export function parseFiles(fullResponse : string) : GeneratedFile[] {
-    const files : GeneratedFile[] = []
 
-    const filesBlockMatch = fullResponse.match(/<files>([\s\S]*?)<\/files>/);
-    if(!filesBlockMatch) {
-        throw new Error("Response mein <files> tag is not found . Response:\n" + fullResponse.slice(0, 300))
-    }
-      const fileRegex = /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
-      let match;
+export function parseFiles(fullResponse: string): GeneratedFile[] {
+  const files: GeneratedFile[] = [];
 
-     while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
-        files.push({
+  const filesBlockMatch = fullResponse.match(
+    /<files>([\s\S]*?)<\/files>/
+  );
+
+  if (!filesBlockMatch) {
+    throw new Error(
+      "Response mein <files> tag nahi mila.\n" +
+        fullResponse.slice(0, 300)
+    );
+  }
+
+  const fileRegex =
+    /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
+
+  let match: RegExpExecArray | null;
+
+  while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
+    files.push({
       path: match[1]!.trim(),
-      content: match[2]!.replace(/^\n/, "").replace(/\n$/, ""),
+      content: match[2]!
+        .replace(/^\n/, "")
+        .replace(/\n$/, ""),
     });
   }
 
