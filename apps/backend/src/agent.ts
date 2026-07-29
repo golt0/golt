@@ -22,19 +22,23 @@ export async function runAgent(projectId : string, userMessage : string) {
 
         let fullResponse = "";
 
-        for await (const chunk of stream) {
-           const text = chunk.text;
-           if(text) {
-            fullResponse += text;
-            emitToProject(projectId , "agent:token" , {text})
-           }
-        }
+for await (const chunk of stream) {
+  const text = chunk.choices?.[0]?.delta?.content ?? "";
+
+  if (!text) continue;
+
+  fullResponse += text;
+
+  emitToProject(projectId, "agent:token", {
+    text,
+  });
+}
 
         const files  = parseFiles(fullResponse)
 
         const sandbox = await ensureSandbox(projectId)
 
-        for await (const file of files) {
+        for  (const file of files) {
            if(file.path.includes("..") || file.path.startsWith('/')) {
             continue
            }
@@ -47,7 +51,7 @@ export async function runAgent(projectId : string, userMessage : string) {
         })
 
         if(sandbox.containerId) {
-            writeFiles(sandbox.containerId, [{path : file.path ,content : file.content }])
+          await  writeFiles(sandbox.containerId, [{path : file.path ,content : file.content }])
         }
 
         emitToProject(projectId , "file:written" , {path :file.path})
