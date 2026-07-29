@@ -1,7 +1,7 @@
 import Dockerode from "dockerode";
 
     const docker = new Dockerode({
-       socketPath : 'var/run/docker.sock'
+       socketPath : '/var/run/docker.sock'
     })
 
 export async function createAndStart(projectId : any, port: any) {
