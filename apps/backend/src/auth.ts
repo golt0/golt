@@ -50,7 +50,7 @@ router.post("/signup", async (req , res, next) => {
           data : {email , name , passwordHash : hash}
       })
   
-      const token = signToken(user.id)
+      const token = await signToken(user.id)
       return res.status(201).json({
           user : {id : user.id , email : user.email, name : user.name},
           token
