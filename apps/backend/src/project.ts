@@ -8,18 +8,29 @@ const router = Router();
 
 const TEMPLATE_DIR = path.join(import.meta.dir, '../template');
 
+const SKIP_FILES  = ['bun.lock' , 'package-lock.json', 'yarn.lock']
+
 function getTemplateFiles() {
   const files: { path: string; content: string }[] = [];
 
+  const BINARY_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.woff', '.woff2', '.ttf', '.eot'];
+
   function walk(dir: string, base: string) {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if(SKIP_FILES.includes(entry.name)) continue;
       if (['node_modules', '.git', 'dist', '.DS_Store'].includes(entry.name)) continue;
       const full = path.join(dir, entry.name);
       const rel  = base ? `${base}/${entry.name}` : entry.name;
-      if (entry.isDirectory()) walk(full, rel);
-      else files.push({ path: rel, content: readFileSync(full, 'utf-8') });
+      if (entry.isDirectory()) {
+        walk(full, rel);
+       } else {
+     
+        const ext = path.extname(entry.name).toLowerCase();
+        if (BINARY_EXTENSIONS.includes(ext)) continue;
+        files.push({ path: rel, content: readFileSync(full, 'utf-8') });
     }
   }
+}
 
   walk(TEMPLATE_DIR, '');
   return files;
@@ -66,7 +77,7 @@ router.get("/", requireAuth , async (req , res, next) => {
       orderBy : {createAt : 'desc'}
     })
   
-    return res.status(200).json({project})
+    return res.status(200).json({projects : project})
   } catch (error) {
     next(error)
   }
@@ -91,9 +102,9 @@ router.get("/:id" , requireAuth ,async (req , res, next) => {
   }
 })
 
-router.delete("/;id",  requireAuth , async (req , res, next) => {
+router.delete("/:id",  requireAuth , async (req , res, next) => {
 try {
-    const ownerId = (req as any)  as string;
+    const ownerId = (req as any).ownerId  as string;
     
     const project  = await prisma.project.findUnique({
       where : {id : req.params.id}
