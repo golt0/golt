@@ -24,3 +24,20 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.hero-gradient {
+  background:
+    radial-gradient(circle at 15% 70%, #4B6DCE 0%, transparent 45%),
+    radial-gradient(circle at 85% 70%, #4B6DCE 0%, transparent 45%),
+    radial-gradient(circle at 50% 95%, #E679DA 0%, transparent 38%),
+    radial-gradient(circle at 50% 130%, #FC2B61 0%, transparent 50%),
+    radial-gradient(ellipse at top, #222221 0%, #222221 38%, transparent 70%),
+    #222221;
+}
+
+.hero-gradient {
+    min-height: 100vh;
+    overflow: hidden;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
