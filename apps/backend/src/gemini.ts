@@ -68,133 +68,11 @@
 // }
 
 
-
-// import OpenAI from "openai";
-
-// const client = new OpenAI({
-//   apiKey: process.env.GROQ_API_KEY,
-//   baseURL: "https://api.groq.com/openai/v1",
-// });
-
-// const SYSTEM_PROMPT = `You are an expert code generator.
-
-// RULES:
-// - Return ONLY the files that need to be created or modified
-// - Do NOT return files that are unchanged
-// - Do NOT add explanation, comments, or description outside of code
-// - Write complete, working code in every file
-// - Always wrap all files in <files> tag
-// - Each file must be in <file path="..."> tag
-
-// OUTPUT FORMAT (exactly):
-// <files>
-//   <file path="src/App.tsx">
-//     // code here
-//   </file>
-// </files>`;
-
-// export type GeneratedFile = {
-//   path: string;
-//   content: string;
-// };
-
-// export async function generateCode(
-//   prompt: string,
-//   existingFiles: GeneratedFile[]
-// ) {
-//   const existingFilesContext =
-//     existingFiles.length > 0
-//       ? `EXISTING PROJECT FILES (only return them if modifying them):
-
-// ${existingFiles
-//   .map((f) => `path: ${f.path}\n${f.content}`)
-//   .join("\n\n--\n\n")}`
-//       : "NO existing file - fresh project";
-
-//   const userMessage = `${existingFilesContext}
-
-// USER REQUEST: ${prompt}`;
-
-//   const stream = await client.chat.completions.create({
-//     model: "llama-3.3-70b-versatile",
-//     stream: true,
-//     temperature: 0.2,
-//     max_tokens: 8192,
-//     messages: [
-//       {
-//         role: "system",
-//         content: SYSTEM_PROMPT,
-//       },
-//       {
-//         role: "user",
-//         content: userMessage,
-//       },
-//     ],
-//   });
-
-//   return stream;
-// }
-
-// export async function streamToText(
-//   stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
-// ) {
-//   let fullResponse = "";
-
-//   for await (const chunk of stream) {
-//     const content = chunk.choices[0]?.delta?.content ?? "";
-
-//     fullResponse += content;
-
-//     process.stdout.write(content);
-//   }
-
-//   return fullResponse;
-// }
-
-// export function parseFiles(fullResponse: string): GeneratedFile[] {
-//   const files: GeneratedFile[] = [];
-
-//   const filesBlockMatch = fullResponse.match(
-//     /<files>([\s\S]*?)<\/files>/
-//   );
-
-//   if (!filesBlockMatch) {
-//     throw new Error(
-//       "Response mein <files> tag nahi mila.\n" +
-//         fullResponse.slice(0, 300)
-//     );
-//   }
-
-//   const fileRegex =
-//     /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
-
-//   let match: RegExpExecArray | null;
-
-//   while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
-//     files.push({
-//       path: match[1]!.trim(),
-//       content: match[2]!
-//         .replace(/^\n/, "")
-//         .replace(/\n$/, ""),
-//     });
-//   }
-
-//   if (files.length === 0) {
-//     throw new Error("Koi file parse nahi hui");
-//   }
-
-//   return files;
-// }
-
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY,
-  baseURL: "https://openrouter.ai/api/v1",
-  defaultHeaders: {
-    "HTTP-Referer": "https://localhost:3000",
-    "X-Title": "Golt",
-  },
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: "https://api.deepseek.com",
 });
 
 const SYSTEM_PROMPT = `You are an expert code generator.
@@ -237,8 +115,8 @@ ${existingFiles
 USER REQUEST: ${prompt}`;
 
   const stream = await client.chat.completions.create({
-    model: "gpt-5-mini",
-    stream : true,
+    model: "deepseek-chat",
+    stream: true,
     temperature: 0.2,
     max_tokens: 8192,
     messages: [
@@ -254,21 +132,6 @@ USER REQUEST: ${prompt}`;
   });
 
   return stream;
-}
-
-export async function streamToText(
-  stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
-) {
-  let fullResponse = "";
-
-  for await (const chunk of stream) {
-    const content = chunk.choices[0]?.delta?.content ?? "";
-
-    fullResponse += content;
-    process.stdout.write(content);
-  }
-
-  return fullResponse;
 }
 
 export function parseFiles(fullResponse: string): GeneratedFile[] {
