@@ -10,6 +10,18 @@ export function setToken(token : string) : void {
     return localStorage.setItem('token' , token)
 }
 
+export function removeToken() : void {
+    if(typeof window === "undefined") return ;
+    localStorage.removeItem('token')
+}
+
+export function logout() : void {
+    removeToken();
+    if(typeof window !== "undefined") {
+         window.location.href = "/login"
+    }
+}
+
 
 async function  apiFetch(path : string , options : RequestInit = {}) {
     const token  = getToken();
@@ -24,7 +36,7 @@ async function  apiFetch(path : string , options : RequestInit = {}) {
         },
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if(!res.ok) {
         throw new Error(data.error || 'something went wrong')
@@ -34,17 +46,21 @@ async function  apiFetch(path : string , options : RequestInit = {}) {
 }
 
 export async function signup(name : string , email : string, password : string) {
-    return apiFetch("/auth/signup", {
+    const data = await apiFetch("/auth/signup", {
         method : 'POST',
         body : JSON.stringify({name , email , password})
     });
+    if(data.token)  setToken(data.token);
+    return data;
 }
 
-export async function login(email : string , password : string) {
-    return apiFetch("/auth/login" , {
-        method : 'POST',
-        body : JSON.stringify({email , password})
-    })
+export async function login(email: string, password: string) {
+    const data = await apiFetch("/auth/login", {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+    });
+    if (data.token) setToken(data.token);
+    return data;
 }
 
 export async function  getMe() {
@@ -65,7 +81,7 @@ export async function createProject(name : string) {
 }
 
 export async function deleteProject(id : string) {
-    return apiFetch("/projects" , {
+    return apiFetch(`/projects/${id}` , {
         method : 'DELETE',
     })
 }
