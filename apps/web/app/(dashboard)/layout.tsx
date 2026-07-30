@@ -11,12 +11,14 @@ export default function DashboardLayout({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      
-      <Sidebar isOpen={isOpen} onToggle={() => setIsOpen((prev) => !prev)} />
+    <div className="flex h-screen w-full overflow-hidden">
 
+      <Sidebar
+        isOpen={isOpen}
+        onToggle={() => setIsOpen((prev) => !prev)}
+      />
 
-      <main className="flex-1 overflow-y-auto bg-black/40 p-6">
+      <main className="flex-1 min-w-0 overflow-y-auto bg-black/40 p-4">
         {children}
       </main>
     </div>
