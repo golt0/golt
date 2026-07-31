@@ -9,6 +9,7 @@ import {
   sendMessages,
   getFiles,
   startSandbox,
+  isAuthError,
 } from "@/app/lib/api";
 import { useProjectStore } from "@/store/project.store"
 
@@ -39,33 +40,44 @@ export default function ProjectPage() {
   // ── Auth + load data ──
   useEffect(() => {
     async function init() {
+      // Auth + project lookup: only these should be able to redirect.
       try {
         await getMe();
 
-        // Project info
         const projects = await getProjects();
         const project = projects.find((p: any) => p.id === id);
         if (!project) { router.push("/dashboard"); return; }
         setCurrentProject(project);
         if (project.previewUrl) setPreviewUrl(project.previewUrl);
+      } catch (err) {
+        if (isAuthError(err)) router.push("/login");
+        setFetching(false);
+        return;
+      }
 
-        // Messages
+      // Non-critical data: a failure here must NOT log the user out.
+      try {
         const msgData = await getMessages(id);
         setMessages(msgData.messages ?? []);
+      } catch (err) {
+        console.error("Failed to load messages", err);
+      }
 
-        // Files
+      try {
         const fileData = await getFiles(id);
         setFiles(fileData.files ?? []);
+      } catch (err) {
+        console.error("Failed to load files", err);
+      }
 
-        // Sandbox start karo
+      try {
         const sandbox = await startSandbox(id);
         if (sandbox?.previewUrl) setPreviewUrl(sandbox.previewUrl);
-
-      } catch {
-        router.push("/login");
-      } finally {
-        setFetching(false);
+      } catch (err) {
+        console.error("Failed to start sandbox", err);
       }
+
+      setFetching(false);
     }
     init();
   }, [id]);

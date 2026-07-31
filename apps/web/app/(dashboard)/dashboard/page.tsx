@@ -7,6 +7,7 @@ import {
   sendMessages,
   getMe,
   getProjects,
+  isAuthError,
 } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -43,8 +44,8 @@ export default function DashboardPage() {
 
         const data = await getProjects();
         setProjects(data ?? []);
-      } catch {
-        router.push("/login");
+      } catch (err) {
+        if (isAuthError(err)) router.push("/login");
       } finally {
         setFetching(false);
       }
