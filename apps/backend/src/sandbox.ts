@@ -1,9 +1,7 @@
 import { prisma } from "@repo/db";
-import { createAndStart, stopContainer, writeFiles } from "./docker";
+import { createAndStart, exec, stopContainer, writeFiles } from "./docker";
 import net from "net"
 
-// Serialize ensureSandbox per project so concurrent callers (e.g. the
-// sandbox route + the agent run) don't both try to create a container.
 const inFlight = new Map<string, Promise<Awaited<ReturnType<typeof createSandbox>>>>();
 
 export function ensureSandbox(projectId : string) {
@@ -50,6 +48,11 @@ async function createSandbox(projectId : string) {
 
     await writeFiles(containerId , files)
     console.log("[6] files written");
+    await exec(containerId, [
+        "sh", "-c",
+         "cd /app && bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/vite.log 2>&1 &"
+       ]);
+           console.log("[7] Vite started"); 
     const pod = await prisma.sandboxPod.update({
         where : {projectId},
         data : {
