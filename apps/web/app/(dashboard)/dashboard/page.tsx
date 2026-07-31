@@ -60,10 +60,8 @@ export default function DashboardPage() {
     setLoading(true);
 
     try {
-      const name = extractName(prompt);
-      const { project } = await createProject(name);
-
-      await sendMessages(project.id, prompt);
+     
+      const { project } = await createProject(prompt);
 
       router.push(`/project/${project.id}`);
     } catch (error) {
