@@ -56,7 +56,11 @@ export async function createAndStart(projectId: any, port: any) {
 }
 
 export async function stopContainer(containerId : any) {
-   await docker.getContainer(containerId).stop()
+   try {
+    await docker.getContainer(containerId).stop()
+   } catch (error : any) {
+     if(error!.statusCode !== 304) throw error;
+   }
 }
 
 export async function removeContainer(containerId : any) {
