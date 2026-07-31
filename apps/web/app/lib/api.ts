@@ -1,5 +1,18 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
+export class ApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+        super(message);
+        this.name = "ApiError";
+        this.status = status;
+    }
+}
+
+export function isAuthError(err: unknown): boolean {
+    return err instanceof ApiError && err.status === 401;
+}
+
 export function getToken() : string | null {
     if(typeof window === "undefined") return null;
     return localStorage.getItem('token')
@@ -39,7 +52,7 @@ async function  apiFetch(path : string , options : RequestInit = {}) {
     const data = await res.json().catch(() => ({}));
 
     if(!res.ok) {
-        throw new Error(data.error || 'something went wrong')
+        throw new ApiError(res.status, data.error || 'something went wrong')
     }
 
     return data;
