@@ -4,26 +4,45 @@ import Dockerode from "dockerode";
        socketPath : '/var/run/docker.sock'
     })
 
-export async function createAndStart(projectId : any, port: any) {
-   const container = await docker.createContainer({
-    Image : "sandbox-base",
-    name : `container-${projectId}`,
-    // TeleTypewrite ek terminal hai if false automatically 
-    // band hojata hai if it is true container chalta rehta hai 
-    // baad me bi
-    Tty : true,
-    ExposedPorts : {'5173/tcp' : {}}, // sandbox ke andar konsa port chal raha hai
-    HostConfig : { 
-        PortBindings : {
-            '5173/tcp' : [{ HostPort : String(port)}] // vo sandbox kisport pe chal raha hai
-        },
-        Memory : 512 * 1024 * 1024, // memory
-        NanoCpus: 0.5 * 1e9, // cup
-     }
-   })
-   await container.start()
+export async function createAndStart(projectId: any, port: any) {
+  console.log("[A] createAndStart");
 
-   return container.id;
+  try {
+    const images = await docker.listImages();
+    console.log(
+      "[B] Images:",
+      images.flatMap(img => img.RepoTags || [])
+    );
+
+    console.log("[C] About to create container");
+
+    const container = await docker.createContainer({
+      Image: "sandbox-base",
+      name: `container-${projectId}`,
+      Tty: true,
+      ExposedPorts: {
+        "5173/tcp": {},
+      },
+      HostConfig: {
+        PortBindings: {
+          "5173/tcp": [{ HostPort: String(port) }],
+        },
+        Memory: 512 * 1024 * 1024,
+        NanoCpus: 0.5 * 1e9,
+      },
+    });
+
+    console.log("[D] Container created", container.id);
+
+    await container.start();
+
+    console.log("[E] Container started");
+
+    return container.id;
+  } catch (err) {
+    console.error("[ERROR createAndStart]", err);
+    throw err;
+  }
 }
 
 export async function stopContainer(containerId : any) {
@@ -35,6 +54,8 @@ export async function removeContainer(containerId : any) {
 }
 
 export async function exec(containerId : any , cmd : string[]) : Promise<string> {
+    console.log("[EXEC] Running", cmd);
+
     const contanier = docker.getContainer(containerId)
 
     const exec = await contanier.exec({
@@ -42,8 +63,11 @@ export async function exec(containerId : any , cmd : string[]) : Promise<string>
         AttachStdout : true,
         AttachStderr: true,
     })
+      console.log("[EXEC] Exec object created");
 
-    const stream = await exec.start({hijack : true , stdin : false})
+    const stream = await exec.start({ stdin : false})
+
+    console.log("[EXEC] Stream started");
 
     return new Promise((resolve ,reject) => {
         let output = '';

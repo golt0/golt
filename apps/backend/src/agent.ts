@@ -33,12 +33,18 @@ for await (const chunk of stream) {
     text,
   });
 }
-
+        console.log("[A] generating files");
         const files  = parseFiles(fullResponse)
+        console.log("[B] parsed files", files.length);
+
+        console.log("[C] calling ensureSandbox");
 
         const sandbox = await ensureSandbox(projectId)
 
+        console.log("[D] sandbox returned", sandbox);
+
         for  (const file of files) {
+          console.log("[E] writing db file", file.path);
            if(file.path.includes("..") || file.path.startsWith('/')) {
             continue
            }
@@ -49,22 +55,33 @@ for await (const chunk of stream) {
             update : {content : file.content },
             create : {projectId , path : file.path , content : file.content}
         })
+        console.log("[F] db write done", file.path);
 
         if(sandbox.containerId) {
+           console.log("[G] container write", file.path);
           await  writeFiles(sandbox.containerId, [{path : file.path ,content : file.content }])
+          console.log("[H] container write done", file.path);
         }
 
         emitToProject(projectId , "file:written" , {path :file.path})
     }
+    console.log("[I] saving assistant message");
+
 
     await prisma.message.create({
         data : {projectId , role : "assistant", content :fullResponse}
     })
+    console.log("[J] agent done");
 
     emitToProject(projectId , "agent:done" , {})
 
 
     } catch (error) {
-       console.error(error)
-    }
+   console.error("[RUN AGENT ERROR]");
+   console.error(error);
+
+   emitToProject(projectId, "agent:error", {
+      error: String(error),
+   });
+}
 }

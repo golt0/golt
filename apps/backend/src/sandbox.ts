@@ -3,11 +3,15 @@ import { createAndStart, stopContainer, writeFiles } from "./docker";
 import net from "net"
 
 export async function ensureSandbox(projectId : string) {
+    console.log("[1] ensureSandbox", projectId);
     const existing = await prisma.sandboxPod.findUnique({
         where : {projectId}
+        
     })
 
-    if(existing && existing.status === "running") {
+     console.log("[2] existing", existing);
+
+    if(existing && existing.status === "running" ||existing?.status === "creating") {
         return existing;
     }
 
@@ -18,18 +22,24 @@ export async function ensureSandbox(projectId : string) {
    })
 
     const port = await findFreePort(4000, 5000);
+    console.log("[3] port", port);
+    console.log("[CREATING CONTAINER]", projectId);
     const containerId = await createAndStart(projectId, port);
+    console.log("[4] containerId", containerId);
+
 
     const files =  await prisma.projectFile.findMany({
         where : {projectId}
     })
+    console.log("[5] files", files.length);
 
     await writeFiles(containerId , files)
-
+    console.log("[6] files written");
     const pod = await prisma.sandboxPod.update({
         where : {projectId},
         data : {
             status : "running",
+            // previewUrl: `http://localhost:${port}`,
             containerId,
             lastHeartbeat : new Date()
         }
