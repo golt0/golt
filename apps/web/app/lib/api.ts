@@ -129,7 +129,7 @@ export async function sendMessages(projectId : string, message : string) {
 }
 
 export async function startSandbox(projectId: string) {
-    return apiFetch(`/projects/${projectId}/sandbox`, {
+    return apiFetch(`/projects/${projectId}/start`, {
         method: 'POST',
     });
 }

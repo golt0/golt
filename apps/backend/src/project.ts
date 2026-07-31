@@ -3,6 +3,7 @@ import { prisma } from '@repo/db';
 import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { requireAuth } from './middlewares/auth.middleware';
+import { ensureSandbox } from './sandbox';
 
 const router = Router();
 
@@ -36,6 +37,39 @@ function getTemplateFiles() {
   return files;
 }
 
+router.post("/:id/start" , requireAuth ,async (req , res, next) => {
+  console.log("START ROUTE HIT", req.params.id);
+ try {
+   const ownerId = (req as any).ownerId as string;
+
+   const projectId = req.params.id! ;
+
+   const project = await prisma.project.findUnique({
+    where : {id : projectId}
+   })
+
+   if(!project || project.ownerId !== ownerId) {
+    return res.status(400).json({
+      error  : "project id required"
+    })
+   }
+
+  const sandbox = await ensureSandbox(projectId);
+ 
+  const updatedProject = await prisma.project.findUnique({
+    where : {id  : projectId}
+  })
+
+ 
+   return res.status(200).json({
+     sandbox,
+     previewUrl : updatedProject?.previewUrl
+   })
+ } catch (error) {
+  next(error)
+ }
+
+})
 
 router.post("/" ,requireAuth , async (req , res, next) => {
  try {
