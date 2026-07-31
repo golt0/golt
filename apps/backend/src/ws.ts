@@ -29,7 +29,7 @@ export async function attachWs(server : any) {
                     })
 
                 if(!project || project.ownerId !== ws.userId) {
-                   ws.send(JSON.stringify({type : 'join' , projectId}))
+                   ws.send(JSON.stringify({type : 'error' , message:"Unauthorized"}))
                    return;
                 }
                 ws.projectId = projectId;
