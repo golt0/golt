@@ -4,6 +4,7 @@ import   authRouter  from './auth';
 import  projectsRouter  from './project';
 import  filesRouter from './files';
 import  chatRouter  from './chat';
+import  sandboxRouter  from './sandbox.route';
 
 export const app = express();
 
@@ -15,3 +16,4 @@ app.use('/auth', authRouter);
 app.use('/projects', projectsRouter);
 app.use('/projects', filesRouter);
 app.use('/projects', chatRouter);
+app.use('/projects', sandboxRouter);
