@@ -8,6 +8,16 @@ export async function createAndStart(projectId: any, port: any) {
   console.log("[A] createAndStart");
 
   try {
+    const name = `container-${projectId}`;
+
+    // A previous/duplicate attempt may have left a container with this name,
+    // which makes createContainer fail with a 409 conflict. Clear it first.
+    try {
+      await docker.getContainer(name).remove({ force: true });
+    } catch (err: any) {
+      if (err?.statusCode !== 404) throw err;
+    }
+
     const images = await docker.listImages();
     console.log(
       "[B] Images:",
@@ -18,7 +28,7 @@ export async function createAndStart(projectId: any, port: any) {
 
     const container = await docker.createContainer({
       Image: "sandbox-base",
-      name: `container-${projectId}`,
+      name,
       Tty: true,
       ExposedPorts: {
         "5173/tcp": {},
@@ -94,6 +104,3 @@ export async function writeFiles(containerId : string , files : {path : string, 
         ]);
     }
 }
-
-
-
