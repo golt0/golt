@@ -2,7 +2,22 @@ import { prisma } from "@repo/db";
 import { createAndStart, stopContainer, writeFiles } from "./docker";
 import net from "net"
 
-export async function ensureSandbox(projectId : string) {
+// Serialize ensureSandbox per project so concurrent callers (e.g. the
+// sandbox route + the agent run) don't both try to create a container.
+const inFlight = new Map<string, Promise<Awaited<ReturnType<typeof createSandbox>>>>();
+
+export function ensureSandbox(projectId : string) {
+    const pending = inFlight.get(projectId);
+    if (pending) return pending;
+
+    const promise = createSandbox(projectId).finally(() => {
+        inFlight.delete(projectId);
+    });
+    inFlight.set(projectId, promise);
+    return promise;
+}
+
+async function createSandbox(projectId : string) {
     const existing = await prisma.sandboxPod.findUnique({
         where : {projectId}
     })

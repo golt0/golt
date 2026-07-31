@@ -5,9 +5,19 @@ import Dockerode from "dockerode";
     })
 
 export async function createAndStart(projectId : any, port: any) {
+   const name = `container-${projectId}`;
+
+   // A previous/duplicate attempt may have left a container with this name,
+   // which makes createContainer fail with a 409 conflict. Clear it first.
+   try {
+      await docker.getContainer(name).remove({ force: true });
+   } catch (err: any) {
+      if (err?.statusCode !== 404) throw err;
+   }
+
    const container = await docker.createContainer({
     Image : "sandbox-base",
-    name : `container-${projectId}`,
+    name,
     // TeleTypewrite ek terminal hai if false automatically 
     // band hojata hai if it is true container chalta rehta hai 
     // baad me bi
