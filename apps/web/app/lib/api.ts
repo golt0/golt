@@ -1,16 +1,22 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export class ApiError extends Error {
-    status: number;
-    constructor(status: number, message: string) {
-        super(message);
-        this.name = "ApiError";
-        this.status = status;
-    }
+export type ApiError = Error & {
+    status : number
+}
+export function apiError(status : number , message : string) :ApiError {
+    const error = new Error(message) as ApiError;
+    error.name = "ApiError";
+    error.status = status;
+    return error;
 }
 
 export function isAuthError(err: unknown): boolean {
-    return err instanceof ApiError && err.status === 401;
+    return (
+        err instanceof Error &&
+        err.name === "ApiError" &&
+        "status" in err &&
+        (err as ApiError).status === 401
+    )
 }
 
 export function getToken() : string | null {
@@ -52,7 +58,7 @@ async function  apiFetch(path : string , options : RequestInit = {}) {
     const data = await res.json().catch(() => ({}));
 
     if(!res.ok) {
-        throw new ApiError(res.status, data.error || 'something went wrong')
+        throw apiError(401, "Unauthorized");
     }
 
     return data;
@@ -86,10 +92,10 @@ export async function getProjects() {
    return data.projects ?? []
 }
 
-export async function createProject(name : string) {
+export async function createProject(prompt : string) {
     return apiFetch("/projects" ,  {
         method : 'POST',
-        body : JSON.stringify({name})
+        body : JSON.stringify({prompt})
     })
 }
 
