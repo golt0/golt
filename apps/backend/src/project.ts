@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { requireAuth } from './middlewares/auth.middleware';
 import { ensureSandbox } from './sandbox';
+import { runAgent } from './agent';
 
 const router = Router();
 
@@ -74,15 +75,15 @@ router.post("/:id/start" , requireAuth ,async (req , res, next) => {
 router.post("/" ,requireAuth , async (req , res, next) => {
  try {
    const ownerId = (req as any).ownerId  as string;
-   const {name } = req.body;
+   const {prompt } = req.body;
  
-   if(!name) {
+   if(!prompt) {
      return res.status(400).json({error : "invalid projects name"})
    }
  
    const project  = await prisma.project.create({
      data : {
-       name , 
+       name : prompt.slice(0, 60) , 
        ownerId,
      }
    })
@@ -96,7 +97,17 @@ router.post("/" ,requireAuth , async (req , res, next) => {
     })),
     skipDuplicates : true
    })
-   return res.status(201).json({project})
+
+   await ensureSandbox(project.id)
+
+   runAgent(project.id , prompt)
+
+   const updateProject = await prisma.project.findUnique({
+    where : {id : project.id}
+   })
+
+   
+   return res.status(201).json({project : updateProject})
  } catch (error) {
   next(error)
  }
