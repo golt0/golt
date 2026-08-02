@@ -10,25 +10,9 @@ import {
   getFiles,
   startSandbox,
   isAuthError,
-} from "@/app/lib/api";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Globe,
-  MoreHorizontal,
-  Folder,
-  Code2,
-  ExternalLink,
-} from "lucide-react";
-
-const menuItems = [
-  { label: "option1" },
-  { label: "option2" },
-  { label: "option3" },
-];
-
-const originalOrder = ["Code", "File", "More"];
-
+} from "@/app/lib/api"
 import { useProjectStore } from "@/store/project.store"
+import ProjectTabs from "@/app/components/ProjectMenu";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,32 +39,6 @@ export default function ProjectPage() {
   const [input, setInput] = useState("");
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState("preview");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-
-  const handlePreview = () => {
-    setSelected([]);
-    setActiveTab("preview")
-  };
-
-  const handleMenuSelect = (item: any) => {
-    const index = originalOrder.indexOf(item)
-    setSelected(originalOrder.slice(0, index + 1));
-    setMenuOpen(false);
-  }
-  const handleSelect = (item: string) => {
-    const index = originalOrder.indexOf(item);
-    setSelected(originalOrder.slice(0, index + 1));
-
-    if(item === "Code") {
-      setActiveTab("code")
-    }
-    if(item === "Preview") {
-      setActiveTab("preview")
-    }
-    
-  };
-
 
   useEffect(() => {
     async function init() {
@@ -301,68 +259,12 @@ export default function ProjectPage() {
         </div>
 
       </div>
-
-
-
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="h-14 border-b border-neutral-800 flex items-center justify-start px-4 bg-[#0d0d0d]">
-          <div className="relative flex items-center rounded-full border border-[#759DF7] bg-[#293A6A] p-1 backdrop-blur-md">
-
-            <button
-              onClick={handlePreview}
-              className="relative z-10 flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium text-[#759DF7]"
-            >
-              <Globe size={16} />
-              Preview
-            </button>
-
-
-            {/* Selected buttons */}
-            {selected.map((item) => (
-              <button
-                key={item}
-                onClick={() => handleSelect(item)}
-                className="relative z-10 ml-2 rounded-full px-4 py-2 text-sm text-white hover:bg-blue-500/20"
-              >
-                {item}
-              </button>
-            ))}
-
-
-            <div className="mx-2 h-5 w-px bg-blue-500/30" />
-
-
-            {/* More dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="rounded-full p-2 text-blue-400 transition hover:bg-blue-500/20 hover:text-white"
-              >
-                <MoreHorizontal size={18} />
-              </button>
-
-
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-neutral-800 bg-neutral-900">
-
-                  {originalOrder.map((item) => (
-                    <button
-                      key={item}
-                      onClick={() => {
-                        handleSelect(item);
-                        setMenuOpen(false);
-                      }}
-                      className="flex w-full px-4 py-3 text-sm text-neutral-300 hover:bg-blue-500/10"
-                    >
-                      {item}
-                    </button>
-                  ))}
-
-                </div>
-              )}
-            </div>
-
-          </div>
+          <ProjectTabs
+           activeTab={activeTab}
+           setActiveTab={setActiveTab}
+           />
 
           {previewUrl && (
             <a
