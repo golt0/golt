@@ -21,10 +21,12 @@ import {
 } from "lucide-react";
 
 const menuItems = [
-  { label: "Open", icon: ExternalLink },
-  { label: "Files", icon: Folder },
-  { label: "Code", icon: Code2 },
+  { label: "option1" },
+  { label: "option2" },
+  { label: "option3" },
 ];
+
+const originalOrder = ["Code", "File", "More"];
 
 import { useProjectStore } from "@/store/project.store"
 
@@ -49,12 +51,35 @@ export default function ProjectPage() {
     currentProject,
     setCurrentProject,
   } = useProjectStore();
-  const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
   const [sidebarWidth, setSidebarWidth] = useState(360);
   const [input, setInput] = useState("");
   const [fetching, setFetching] = useState(true);
+  const [activeTab, setActiveTab] = useState("preview");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
 
+  const handlePreview = () => {
+    setSelected([]);
+    setActiveTab("preview")
+  };
+
+  const handleMenuSelect = (item: any) => {
+    const index = originalOrder.indexOf(item)
+    setSelected(originalOrder.slice(0, index + 1));
+    setMenuOpen(false);
+  }
+  const handleSelect = (item: string) => {
+    const index = originalOrder.indexOf(item);
+    setSelected(originalOrder.slice(0, index + 1));
+
+    if(item === "Code") {
+      setActiveTab("code")
+    }
+    if(item === "Preview") {
+      setActiveTab("preview")
+    }
+    
+  };
 
 
   useEffect(() => {
@@ -280,46 +305,34 @@ export default function ProjectPage() {
 
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="h-14 border-b border-neutral-800 flex items-center justify-center bg-[#0d0d0d]">
-          <div className="relative flex items-center rounded-full border border-blue-500/40 bg-blue-600/10 p-1 backdrop-blur-md">
-
-
-            <motion.div
-              layoutId="tab"
-              transition={{ type: "spring", stiffness: 350, damping: 30 }}
-              className={`absolute top-1 bottom-1 rounded-full bg-blue-500 ${activeTab === "preview"
-                  ? "left-1 w-[115px]"
-                  : "left-[118px] w-[90px]"
-                }`}
-            />
-
+        <div className="h-14 border-b border-neutral-800 flex items-center justify-start px-4 bg-[#0d0d0d]">
+          <div className="relative flex items-center rounded-full border border-[#759DF7] bg-[#293A6A] p-1 backdrop-blur-md">
 
             <button
-              onClick={() => setActiveTab("preview")}
-              className={`relative z-10 flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors ${activeTab === "preview"
-                  ? "text-white"
-                  : "text-blue-400 hover:text-white"
-                }`}
+              onClick={handlePreview}
+              className="relative z-10 flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium text-[#759DF7]"
             >
               <Globe size={16} />
               Preview
             </button>
 
 
-            <button
-              onClick={() => setActiveTab("code")}
-              className={`relative z-10 rounded-full px-5 py-2 text-sm font-medium transition-colors ${activeTab === "code"
-                  ? "text-white"
-                  : "text-blue-400 hover:text-white"
-                }`}
-            >
-              Code
-            </button>
+            {/* Selected buttons */}
+            {selected.map((item) => (
+              <button
+                key={item}
+                onClick={() => handleSelect(item)}
+                className="relative z-10 ml-2 rounded-full px-4 py-2 text-sm text-white hover:bg-blue-500/20"
+              >
+                {item}
+              </button>
+            ))}
 
 
             <div className="mx-2 h-5 w-px bg-blue-500/30" />
 
 
+            {/* More dropdown */}
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
@@ -328,31 +341,27 @@ export default function ProjectPage() {
                 <MoreHorizontal size={18} />
               </button>
 
-              <AnimatePresence>
-                {menuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 8, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 shadow-2xl"
-                  >
-                    {menuItems.map(({ label, icon: Icon }, i) => (
-                      <motion.button
-                        key={label}
-                        initial={{ opacity: 0, x: 10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-sm text-neutral-300 transition hover:bg-blue-500/10 hover:text-white"
-                      >
-                        <Icon size={16} className="text-blue-400" />
-                        {label}
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-neutral-800 bg-neutral-900">
+
+                  {originalOrder.map((item) => (
+                    <button
+                      key={item}
+                      onClick={() => {
+                        handleSelect(item);
+                        setMenuOpen(false);
+                      }}
+                      className="flex w-full px-4 py-3 text-sm text-neutral-300 hover:bg-blue-500/10"
+                    >
+                      {item}
+                    </button>
+                  ))}
+
+                </div>
+              )}
             </div>
+
           </div>
 
           {previewUrl && (
