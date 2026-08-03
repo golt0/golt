@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/api"
 import { useProjectStore } from "@/store/project.store"
 import ProjectTabs from "@/app/components/ProjectMenu";
+import Chat from "@/app/components/Chat";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -84,13 +85,17 @@ export default function ProjectPage() {
     init();
   }, [id]);
 
+  
+
   useEffect(() => {
     if (!id) return;
     const token = localStorage.getItem("token");
 
     if (!token) return;
 
-    const ws = new WebSocket(`ws://localhost:8080?token=${encodeURIComponent(token)}`);
+   const ws = new WebSocket(
+  `${process.env.NEXT_PUBLIC_WS_URL}?token=${encodeURIComponent(token)}`
+   );
 
     ws.onopen = () => {
       ws.send(JSON.stringify({ type: "join", projectId: id }))
@@ -130,7 +135,7 @@ export default function ProjectPage() {
 
         if (eventName === "agent:done") {
           setIsAgentThinking(false);
-          console.error("Agent error :", data.error)
+          if (data.error) console.error("Agent error:", data.error); 
         }
       } catch (error) {
         console.error("ws parse error", error)
@@ -192,73 +197,7 @@ export default function ProjectPage() {
     <div className="h-screen bg-[#0d0d0d] text-white flex overflow-hidden">
 
       {/* chat*/}
-      <div className="flex flex-col border-r shrink-0 border-gray-800" style={{ width: `${sidebarWidth}px` }}>
-
-
-        <div className="flex items-center gap-2 px-4 h-12 border-b border-gray-800 shrink-0">
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            ←
-          </button>
-          <span className="text-sm font-medium truncate">
-            {currentProject?.name ?? "Project"}
-          </span>
-        </div>
-
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {messages.length === 0 && (
-            <p className="text-xs text-gray-500 text-center mt-10">
-              Kuch batao — kya banana hai?
-            </p>
-          )}
-
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`text-sm rounded-lg px-3 py-2 leading-relaxed ${msg.role === "user"
-                ? "bg-gray-800 text-white ml-6"
-                : "bg-gray-900 text-gray-300 mr-6 border border-gray-800"
-                }`}
-            >
-              {msg.content}
-            </div>
-          ))}
-
-          {isAgentThinking && (
-            <div className="text-xs text-gray-500 animate-pulse mr-6 px-3 py-2 bg-gray-900 rounded-lg border border-gray-800">
-              Thinking...
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-
-        <div className="border border-neutral-700 rounded-2xl p-3 bg-neutral-900">
-          <textarea
-            rows={3}
-            placeholder="Ask Lovable..."
-            className="w-full bg-transparent outline-none resize-none"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-
-          <div className="flex justify-between mt-3">
-            <button>+</button>
-
-            <button
-              onClick={handleSend}
-              className="w-8 h-8 rounded-full bg-white text-black"
-            >
-              ↑
-            </button>
-          </div>
-        </div>
-
-      </div>
+      <Chat />
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="h-14 border-b border-neutral-800 flex items-center justify-start px-4 bg-[#0d0d0d]">
           <ProjectTabs
