@@ -40,12 +40,12 @@ router.get("/:projectId/messages", requireAuth, async(req , res) => {
         return res.status(400).json({error : "project is not found"})
     }
 
-    const messaage = await prisma.message.findMany({
+    const messages = await prisma.message.findMany({
         where : {projectId},
         orderBy : {createdAt : "asc"}
     })
 
-    return res.status(200).json({messaage})
+    return res.status(200).json({messages})
 
 })
 
