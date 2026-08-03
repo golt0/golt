@@ -1,4 +1,4 @@
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { verifyToken } from "./auth";
 import { prisma } from "@repo/db";
 
