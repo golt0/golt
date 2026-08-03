@@ -10,8 +10,6 @@ export async function createAndStart(projectId: any, port: any) {
   try {
     const name = `container-${projectId}`;
 
-    // A previous/duplicate attempt may have left a container with this name,
-    // which makes createContainer fail with a 409 conflict. Clear it first.
     try {
       await docker.getContainer(name).remove({ force: true });
     } catch (err: any) {
