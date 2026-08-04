@@ -68,7 +68,7 @@ export default function Chat() {
           </p>
         )}
 
-        {messages.map((msg) => (
+        {/* {messages.map((msg) => (
           <div
             key={msg.id}
             className={`text-sm px-3 py-2 leading-relaxed ${msg.role === "user"
@@ -78,7 +78,11 @@ export default function Chat() {
           >
             {msg.content}
           </div>
-        ))}
+        ))} */}
+
+        {messages.map((msg) => (
+        <MessageCard key={msg.id} msg={msg} />
+         ))}
 
         {isAgentThinking && (
           <div className="text-xs text-gray-500 animate-pulse mr-6 px-3 py-2 bg-gray-900 rounded-lg border border-gray-800">
@@ -114,6 +118,68 @@ export default function Chat() {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function MessageCard({ msg }: { msg: any }) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  const {setPreviewUrl} = useProjectStore();
+
+  const handlePreview = () => {
+    setPreviewUrl(msg.content)
+  }
+
+  function generateTopic(text: string) {
+    const words = text
+      .replace(/[^\w\s]/gi, "")
+      .split(" ")
+      .slice(0, 5)
+      .join(" ");
+
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
+  if (msg.role === "user") {
+    return (
+      <div className="bg-[#272725] text-[#A5A5A4] ml-6 px-3 py-2 rounded-full border border-[#41413E] rounded-br-none text-sm">
+        {msg.content}
+      </div>
+    );
+  }
+
+
+  return (
+    <div className="mr-6 bg-[#1f1f1d] border border-[#41413E] rounded-2xl p-3">
+
+      <div className="text-sm font-medium text-white">
+        {generateTopic(msg.content)}
+      </div>
+      <div className="flex gap-2 mt-3">
+
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="px-3 py-1 text-xs rounded-lg bg-neutral-800 text-gray-300 hover:bg-neutral-700"
+        >
+          {showDetails ? "Hide Details" : "Details"}
+        </button>
+
+
+        <button
+          className="px-3 py-1 text-xs rounded-lg bg-[#484846] text-white border border-[#80807F] shadow-lg "
+          onClick={handlePreview}
+        >
+          Preview
+        </button>
+
+      </div>
+      {showDetails && (
+        <div className="mt-3 p-3 text-xs text-gray-400 bg-black rounded-lg whitespace-pre-wrap">
+          {msg.content}
+        </div>
+      )}
+
     </div>
   );
 }
