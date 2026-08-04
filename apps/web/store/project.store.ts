@@ -34,7 +34,7 @@ type Store = {
     upsertFile:         (file: File) => void;
     setSelectedFile:    (file: File | null) => void;
     setIsAgentThinking: (bool: boolean) => void;
-    setPreviewUrl:      (url: string) => void;
+    setPreviewUrl:      (url: string | null) => void;
     setCurrentProject:  (project: Project) => void;
 }
 
