@@ -3,6 +3,74 @@ import { emitToProject } from "./ws";
 import { generateCode, parseFiles } from "./gemini";
 import { ensureSandbox } from "./sandbox";
 import { writeFiles } from "./docker";
+import type OpenAI from "openai";
+
+const TOOLS : OpenAI.Chat.ChatCompletionTool[] = [
+  {
+    type : "function",
+    function : {
+      name : "write_file",
+      description : "Write or overwrite a file in the project.",
+      parameters : {
+        type : "object",
+        properties : {
+          path : {type : "string" , description : "Relative file path , e.g. src/index.ts"},
+          content : {type : "string" , description : "Full file content to write"}
+        },
+        required : ["path" , "content"],
+      },
+    },
+  },
+  {
+    type :  "function",
+    function : {
+      name : "read_file",
+      description : "Read the current content of a file in the project.",
+      parameters : {
+        type : "object",
+        properties : {
+          path : {type : "string" , description : "Relative file path to read"},
+        },
+        required : ["path"]
+      },
+    },
+  },
+  {
+    type : "function",
+    function : {
+      name : "run_command",
+      description : "Run a shell command inside the sandbox (e.g. npm install , npm run build). " +
+      "Returns stdout , stderr , and exit code.",
+      parameters : {
+        type  : "object",
+        properties : {
+          command : {type: "string" , description : "Shell command to execute"},
+        },
+        required : ["command"],
+      },
+    },
+  },
+  {
+    type : "function",
+    function : {
+      name : "done",
+      description : "signal that the task is complete . Always call this finished.",
+      parameters : {
+        type : "object",
+        properties  : {
+          summary : {
+            type : "string",
+            description  : "Short summary of what was done "
+          },
+        },
+        required : ["summary"]
+      }
+    }
+  }
+]
+
+
+
 
 export async function runAgent(projectId: string, userMessage: string) {
   try {
