@@ -3,7 +3,7 @@ import { emitToProject } from "./ws";
 import { writeFiles, readFile, execInContainer } from "./docker";
 import OpenAI from "openai";
 
-export const TOOL_DEFINITION : OpenAI.Chat.ChatCompletionTool[] = [
+export const TOOL_DEFINITIONS : OpenAI.Chat.ChatCompletionTool[] = [
       {
     type: "function",
     function: {
@@ -69,7 +69,7 @@ export const TOOL_DEFINITION : OpenAI.Chat.ChatCompletionTool[] = [
   },
 ]
 
-async function executeTool(toolName : string, args : Record<string, unknown>, projectId : string, containerId : string | null) : Promise<string> {
+export async function executeTool(toolName : string, args : Record<string, unknown>, projectId : string, containerId : string | null) : Promise<string> {
     
     if(toolName === "write_file") {
         const {path , content} = args as {path : string , content : string}
