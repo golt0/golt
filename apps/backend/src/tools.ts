@@ -1,72 +1,135 @@
-import { promises as fs } from "node:fs";
-import {exec} from "node:child_process"
-import { promisify } from "node:util";
+import { prisma } from "@repo/db";
+import { emitToProject } from "./ws";
+import { writeFiles, readFile, execInContainer } from "./docker";
+import OpenAI from "openai";
 
-const execAsync = promisify(exec)
+export const TOOL_DEFINITION : OpenAI.Chat.ChatCompletionTool[] = [
+      {
+    type: "function",
+    function: {
+      name: "write_file",
+      description: "Write or overwrite a file in the project.",
+      parameters: {
+        type: "object",
+        properties: {
+          path:    { type: "string", description: "Relative file path, e.g. src/index.ts" },
+          content: { type: "string", description: "Full file content to write" },
+        },
+        required: ["path", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "read_file",
+      description: "Read the current content of a file in the project.",
+      parameters: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "Relative file path to read" },
+        },
+        required: ["path"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "run_command",
+      description:
+        "Run a shell command inside the sandbox (e.g. npm install, npm run build). " +
+        "Returns stdout, stderr, and exit code.",
+      parameters: {
+        type: "object",
+        properties: {
+          command: { type: "string", description: "Shell command to execute" },
+        },
+        required: ["command"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "done",
+      description:
+        "Signal that the task is complete. Always call this when finished.",
+      parameters: {
+        type: "object",
+        properties: {
+          summary: {
+            type: "string",
+            description: "Short summary of what was done, shown to the user.",
+          },
+        },
+        required: ["summary"],
+      },
+    },
+  },
+]
 
-export const writeTool = {
-    name : "write",
-    description : "write content to the file",
+async function executeTool(toolName : string, args : Record<string, unknown>, projectId : string, containerId : string | null) : Promise<string> {
+    
+    if(toolName === "write_file") {
+        const {path , content} = args as {path : string , content : string}
 
-    async execute(_toolCallId : string , args : {path : string , content : string}) {
-        await fs.writeFile(args.path , args.content , "utf-8"); 
-        return {
-            content : [
-                {
-                    type : "text",
-                    text : `Successfully wrote  to ${args.path}`
-                }
-            ]
+        if(path.includes("..") || path.startsWith("/")) {
+            return `Error : unsafe path ${path}`
         }
-    }
-}
 
-export const readTool = {
-    name : "read",
-    description : "read the content of the file",
-
-    async execute (
-        _toolCallId : string , args : { path : string }
-    ) {
-        const content = await fs.readFile(args.path , "utf-8")
-
-        return {
-            content : [
-                {
-                    type : "text",
-                    text : content,
-                }
-            ]
+        await prisma.projectFile.upsert({
+            where : {projectId_path : {
+                projectId ,path
+            }},
+            update : {content},
+            create : {projectId , content , path}
+        })
+        if(containerId) {
+        await writeFiles(containerId , [{path , content}])
         }
+
+        emitToProject(projectId , "file:written" , {path})
+
+       return `OK : wrote ${path}`
     }
-}
-export const bashTool = {
-    name : "bash",
-    description : "Execute a bash command in the working directory .",
 
-    async execute (
-        _toolCallId : string , args : {command : string}
-    ) {
-        try {
-            const {stdout , stderr}  = await execAsync(args.command);
+    if(toolName === "read_file") {
+        const {path } = args  as {path : string }
 
-            return {
-                content : [
-                    {
-                        type : "text",
-                        text : stdout || stderr || "(no output)",
-                    },
-                ],
-            };
-        } catch (error) {
-            return {
-                content : [
-                    {
-                        type : "text",
-                        text : error instanceof Error ? error.message : "Command failed"
-                    }
-                ]
-            }
+        const record = await prisma.projectFile.findUnique({
+            where : {projectId_path : {projectId , path}}
+        })
+
+        if(record) return record.content;
+
+        if(containerId) {
+            const content = await readFile(containerId , path)
+            if (content !== null) return content;
         }
+
+        return `Error : file not found : ${path}`
     }
+
+    if(toolName === "run_command") {
+        const {command} = args as {command :string}
+
+        if(!containerId) return "Error : no sandbox container is avaliable"
+         
+        emitToProject(projectId , "agent:command" , {command})
+
+        const result = await execInContainer(containerId , command)
+        const output = [result.stdout , result.stderr].filter(Boolean).join("\n")
+
+         emitToProject(projectId, "agent:command_result", { command, output, exitCode: result.exitCode });
+
+         return output
+      ? `exit ${result.exitCode}\n${output}`
+      : `exit ${result.exitCode} (no output)`;
+
+    }
+
+     if (toolName === "done") return "";
+ 
+     return `Error: unknown tool "${toolName}"`;
 }
