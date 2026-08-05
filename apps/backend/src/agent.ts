@@ -1,155 +1,103 @@
 import { prisma } from "@repo/db";
 import { emitToProject } from "./ws";
-import { generateCode, parseFiles } from "./gemini";
 import { ensureSandbox } from "./sandbox";
-import { writeFiles } from "./docker";
-import type OpenAI from "openai";
+import { askLLM, assistantMessage, toolResultMessage } from "./gemini";
+import { TOOL_DEFINITIONS, executeTool } from "./tools";
 
-const TOOLS : OpenAI.Chat.ChatCompletionTool[] = [
-  {
-    type : "function",
-    function : {
-      name : "write_file",
-      description : "Write or overwrite a file in the project.",
-      parameters : {
-        type : "object",
-        properties : {
-          path : {type : "string" , description : "Relative file path , e.g. src/index.ts"},
-          content : {type : "string" , description : "Full file content to write"}
-        },
-        required : ["path" , "content"],
-      },
-    },
-  },
-  {
-    type :  "function",
-    function : {
-      name : "read_file",
-      description : "Read the current content of a file in the project.",
-      parameters : {
-        type : "object",
-        properties : {
-          path : {type : "string" , description : "Relative file path to read"},
-        },
-        required : ["path"]
-      },
-    },
-  },
-  {
-    type : "function",
-    function : {
-      name : "run_command",
-      description : "Run a shell command inside the sandbox (e.g. npm install , npm run build). " +
-      "Returns stdout , stderr , and exit code.",
-      parameters : {
-        type  : "object",
-        properties : {
-          command : {type: "string" , description : "Shell command to execute"},
-        },
-        required : ["command"],
-      },
-    },
-  },
-  {
-    type : "function",
-    function : {
-      name : "done",
-      description : "signal that the task is complete . Always call this finished.",
-      parameters : {
-        type : "object",
-        properties  : {
-          summary : {
-            type : "string",
-            description  : "Short summary of what was done "
-          },
-        },
-        required : ["summary"]
-      }
-    }
-  }
-]
+ 
 
+const MAX_ITERATIONS = 10;
 
-
-
-export async function runAgent(projectId: string, userMessage: string) {
+export async function runAgent(projectId : string , userMessage : string) {
   try {
     await prisma.message.create({
-      data: { projectId, role: "user", content: userMessage }
-    })
+      data : {projectId , role : "user" , content : userMessage}
+    });
 
-    emitToProject(projectId, "agent:thinking", {})
+    emitToProject(projectId , "agent:thinking" , {});
 
     const existingFile = await prisma.projectFile.findMany({
-      where: { projectId }
+      where : {projectId}
     })
-   
-    const stream = await generateCode(
-      userMessage, existingFile.map((f) => ({ path: f.path, content: f.content }))
-    )
-
-    let fullResponse = "";
-
-    for await (const chunk of stream) {
-      const text = chunk.choices?.[0]?.delta?.content ?? "";
-
-      if (!text) continue;
-
-      fullResponse += text;
-
-      emitToProject(projectId, "agent:token", {
-        text,
-      });
-    }
-    console.log("[A] generating files");
-    const files = parseFiles(fullResponse)
-    console.log("[B] parsed files", files.length);
-
-    console.log("[C] calling ensureSandbox");
 
     const sandbox = await ensureSandbox(projectId)
+    const containerId = sandbox.containerId ?? null;
 
-    console.log("[D] sandbox returned", sandbox);
+    const messages: any[] = [
+      {
+        role: "system",
+        content: [
+          "You are an expert coding agent. Use tools to complete the task.",
+          "Always call `done` when finished.",
+          existingFile.length
+            ? `Existing files:\n${existingFile.map((f) => `  - ${f.path}`).join("\n")}`
+            : "No files yet — fresh project.",
+        ].join("\n"),
+      },
+      {
+        role: "user",
+        content: userMessage,
+      },
+    ];
 
-    for (const file of files) {
-      console.log("[E] writing db file", file.path);
-      if (file.path.includes("..") || file.path.startsWith('/')) {
-        continue
-      }
+
+    let iteration = 0;
+    let finalSummary = "";
+    let isDone = false;
 
 
-      await prisma.projectFile.upsert({
-        where: { projectId_path: { projectId, path: file.path } },
-        update: { content: file.content },
-        create: { projectId, path: file.path, content: file.content }
-      })
-      console.log("[F] db write done", file.path);
+    while(iteration < MAX_ITERATIONS && !isDone) {
+          iteration++;
+          console.log(`iteration ${iteration}`)
 
-      if (sandbox.containerId) {
-        console.log("[G] container write", file.path);
-        await writeFiles(sandbox.containerId, [{ path: file.path, content: file.content }])
-        console.log("[H] container write done", file.path);
-      }
+          const {toolCalls, text} = await askLLM(messages ,TOOL_DEFINITIONS);
 
-      emitToProject(projectId, "file:written", { path: file.path })
+          if(text) {
+            emitToProject(projectId , "agent:thinking" , {text})
+          }
+
+          if(toolCalls.length === 0) {
+            finalSummary = text;
+            break
+          }
+
+          messages.push(assistantMessage(text ,toolCalls))
+
+          for(const call of toolCalls) {
+             console.log(`[AGENT] calling tool: ${call.name}`);
+             emitToProject(projectId , "agent:tool_call" , {tool : call.name , args : call.args})
+
+             if(call.name === "done") {
+                finalSummary = (call.args as {summary : string}).summary ?? "";
+                isDone = true;
+
+                messages.push(toolResultMessage(call.id , "acknowlage"))
+
+                break
+             }
+
+             const result = await executeTool(call.name , call.args , projectId , containerId);
+             console.log(`[agent] ${call.name} result:` , result.slice(0 , 120));
+
+             emitToProject(projectId , "agent:too_result" , {tool : call.name , result : result.slice(0 , 500)});
+
+             messages.push(toolResultMessage(call.id , result))
+          }
     }
-    console.log("[I] saving assistant message");
 
+    if(!isDone && !finalSummary) {
+      finalSummary = "(Agent reached the max itreation without finishing)";
+      console.warn("[Agent] hit max intration")
+    }
 
     await prisma.message.create({
-      data: { projectId, role: "assistant", content: fullResponse }
+      data : {projectId , role : "assistant" , content : finalSummary}
     })
-    console.log("[J] agent done");
 
-    emitToProject(projectId, "agent:done", {})
-
-
+    console.log("[agent] complete")
+    emitToProject(projectId , "agent:done" , {summary: finalSummary})
   } catch (error) {
-    console.error("[RUN AGENT ERROR]");
-    console.error(error);
-
-    emitToProject(projectId, "agent:error", {
-      error: String(error),
-    });
+      console.error("[Run agent error]" , error)
+      emitToProject(projectId, "agent:error", { error: String(error) });
   }
 }
