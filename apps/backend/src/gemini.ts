@@ -67,7 +67,6 @@
 //   return files;
 // }
 
-
 import OpenAI from "openai";
 
 const client = new OpenAI({
@@ -75,96 +74,68 @@ const client = new OpenAI({
   baseURL: "https://api.deepseek.com",
 });
 
-const SYSTEM_PROMPT = `You are an expert code generator.
-
-RULES:
-- Return ONLY the files that need to be created or modified
-- Do NOT return files that are unchanged
-- Do NOT add explanation, comments, or description outside of code
-- Write complete, working code in every file
-- Always wrap all files in <files> tag
-- Each file must be in <file path="..."> tag
-
-OUTPUT FORMAT (exactly):
-<files>
-  <file path="src/App.tsx">
-    // code here
-  </file>
-</files>`;
-
-export type GeneratedFile = {
-  path: string;
-  content: string;
-};
-
-export async function generateCode(
-  prompt: string,
-  existingFiles: GeneratedFile[]
-) {
-  const existingFilesContext =
-    existingFiles.length > 0
-      ? `EXISTING PROJECT FILES (only return them if modifying them):
-
-${existingFiles
-  .map((f) => `path: ${f.path}\n${f.content}`)
-  .join("\n\n--\n\n")}`
-      : "NO existing file - fresh project";
-
-  const userMessage = `${existingFilesContext}
-
-USER REQUEST: ${prompt}`;
-
-  const stream = await client.chat.completions.create({
-    model: "deepseek-chat",
-    stream: true,
-    temperature: 0.2,
-    max_tokens: 8192,
-    messages: [
-      {
-        role: "system",
-        content: SYSTEM_PROMPT,
-      },
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ],
-  });
-
-  return stream;
+export type ToolCall = {
+  id: string;
+  name: string;
+  args: Record<string, unknown>
 }
 
-export function parseFiles(fullResponse: string): GeneratedFile[] {
-  const files: GeneratedFile[] = [];
+export async function askLLM(messages: any[], tools: OpenAI.Chat.ChatCompletionTool[]
 
-  const filesBlockMatch = fullResponse.match(
-    /<files>([\s\S]*?)<\/files>/
-  );
+): Promise<{ toolCalls: ToolCall[]; text: string }> {
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat",
+    stream: false,
+    temperature: 0.2,
+    max_tokens: 8192,
+    tools,
+    tool_choice: "auto",
+    messages,
+  })
 
-  if (!filesBlockMatch) {
-    throw new Error(
-      "Response mein <files> tag nahi mila.\n" +
-        fullResponse.slice(0, 300)
-    );
+  const message = response.choices[0]?.message;
+  if (!message) throw new Error("DeepSeek return no response");
+
+  if (message.tool_calls && message.tool_calls.length > 0) {
+    const toolCalls: ToolCall[] = message.tool_calls
+      .filter((tc) => tc.type === "function")
+      .map((tc) => ({
+        id: tc.id,
+        name: tc.function.name,
+        args: parseArgs(tc.function.arguments),
+      }));
+    return { toolCalls, text: message.content ?? "" }
   }
+  return { toolCalls: [], text: message.content ?? "" }
+}
 
-  const fileRegex =
-    /<file\s+path="([^"]+)">([\s\S]*?)<\/file>/g;
 
-  let match: RegExpExecArray | null;
+export function assistantMessage(text: string, toolCalls: ToolCall[]): any {
+  return {
+    role: "assistant",
+    content: text ?? null,
+    tool_calls: toolCalls.map((tc) => ({
+      id: tc.id,
+      type: "function" as const,
+      function: { name: tc.name, arguments: JSON.stringify(tc.args) }
+    })),
+  };
+}
 
-  while ((match = fileRegex.exec(filesBlockMatch[1]!)) !== null) {
-    files.push({
-      path: match[1]!.trim(),
-      content: match[2]!
-        .replace(/^\n/, "")
-        .replace(/\n$/, ""),
-    });
+export function toolResultMessage(toolCallId: string, result: string): any {
+  return {
+    role: "tool",
+    tool_call_id: toolCallId,
+    content: result,
   }
+}
 
-  if (files.length === 0) {
-    throw new Error("Koi file parse nahi hui");
+
+function parseArgs(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.error("could not parse tool args", raw)
+    return {}
   }
-
-  return files;
 }
