@@ -1,1 +1,1 @@
-export { prisma, withRetry } from "./client";
+export { prisma, } from "./client";
