@@ -29,7 +29,7 @@ router.post("/:projectId/messages", requireAuth , async (req , res) => {
 })
 
 router.get("/:projectId/messages", requireAuth, async(req , res) => {
-    const ownerId   = (req as any).ownerId as string;
+    const ownerId   = (req).ownerId as string;
     const projectId = req.params.projectId  as string;
 
     const project = await prisma.project.findUnique({
