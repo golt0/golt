@@ -143,7 +143,7 @@ function MessageCard({ msg }: { msg: any }) {
 
   if (msg.role === "user") {
     return (
-      <div className="bg-[#272725] text-[#A5A5A4] ml-6 px-3 py-2 rounded-full border border-[#41413E] rounded-br-none text-sm">
+      <div className="bg-[#272725] text-[#A5A5A4] ml-6 px-3 py-2 rounded-lg border border-[#41413E] rounded-br-none text-sm">
         {msg.content}
       </div>
     );
@@ -175,7 +175,8 @@ function MessageCard({ msg }: { msg: any }) {
 
       </div>
       {showDetails && (
-        <div className="mt-3 p-3 text-xs text-gray-400 bg-black rounded-lg whitespace-pre-wrap">
+        <div className="mt-3 p-3 text-xs text-gray-400 bg-black
+         rounded-sm whitespace-pre-wrap">
           {msg.content}
         </div>
       )}
