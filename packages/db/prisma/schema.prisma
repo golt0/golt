@@ -15,6 +15,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   project      Project[]
+  connections  Connection[]
 }
 
 model Project {
@@ -66,6 +67,27 @@ model ProjectFile {
 
   @@unique([projectId, path])
   @@index([projectId])
+}
+
+model Connection {
+  id  String @id  @default(cuid())
+  ownerId String
+  provider  Provider
+  accessToken String
+  refreshToken String?
+  scope String?
+  externalId String?
+  externalName String?
+  createdAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+  owner User @relation(fields: [ownerId], references: [id] , onDelete: Cascade)
+
+  @@unique([ownerId, provider])
+  @@index([ownerId])
+}
+
+enum Provider {
+  github
 }
 
 enum SandboxStatus {
