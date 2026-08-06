@@ -36,22 +36,6 @@ export const TOOL_DEFINITIONS : OpenAI.Chat.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
-      name: "run_command",
-      description:
-        "Run a shell command inside the sandbox (e.g. npm install, npm run build). " +
-        "Returns stdout, stderr, and exit code.",
-      parameters: {
-        type: "object",
-        properties: {
-          command: { type: "string", description: "Shell command to execute" },
-        },
-        required: ["command"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "done",
       description:
         "Signal that the task is complete. Always call this when finished.",
