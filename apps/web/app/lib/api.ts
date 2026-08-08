@@ -42,7 +42,7 @@ export function logout() : void {
 }
 
 
-async function  apiFetch(path : string , options : RequestInit = {}) {
+export async function  apiFetch(path : string , options : RequestInit = {}) {
     const token  = getToken();
     console.log("token ", token)
 
