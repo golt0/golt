@@ -30,8 +30,16 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const   FRONTEND_URL =  process.env.FRONTEND_URL || "http://localhost:3000";
 
 
-router.get("/connect" , requireAuth , (req, res) => {
-    const ownerId = req.ownerId as string;
+router.get("/connect" ,  (req, res) => {
+    const {token} = req.query as {token?: string}
+    if(!token) return res.status(401).json({error : "Missing token"})
+
+        let ownerId : string;
+        try {
+            ({ownerId} = jwt.verify(token , JWT_SECRET) as {ownerId : string})
+        } catch (error) {
+            return res.status(401).json({error : "Invalid error"})
+        }
 
     const state = jwt.sign({ownerId} , JWT_SECRET , {expiresIn : "10m"});
 
@@ -44,7 +52,7 @@ router.get("/connect" , requireAuth , (req, res) => {
     res.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
 }) ;
 
-router.get("/callback", requireAuth ,async (req, res, next) => {
+router.get("/callback",async (req, res, next) => {
     try {
         const {code , state} = req.query as {code?: string , state ?:  string}
         if(!code || !state) {
