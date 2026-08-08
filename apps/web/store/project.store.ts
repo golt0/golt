@@ -1,3 +1,11 @@
+import {
+  disconnectGithub,
+  fetchGithubStatus,
+  type GithubStatus,
+  type PushResult,
+  pushProjectToGithub,
+  redirectToGithubConnect,
+} from '@/app/lib/github-api';
 import { create } from 'zustand';
 
 type Message = {
@@ -18,8 +26,29 @@ type Project = {
     previewUrl?: string;
 }
 
+interface GithubState {
+  connected: boolean;
+  username: string | null;
+  statusLoading: boolean;
+  statusError: string | null;
+
+  pushing: boolean;
+  pushError: string | null;
+  lastPushResult: PushResult | null;
+}
+
+interface  GithubActions {
+    loadStatus  : () => Promise<void>;
+    connect : () => void;
+    disconnect : () => Promise<void>
+    push : (projectId : string, repoName : string) => Promise<PushResult | null>
+    resetPush: () => void;
+}
+
+
+
 type Store = {
-  
+
     messages:        Message[];
     files:           File[];
     selectedFile:    File | null;
@@ -88,3 +117,70 @@ export const useProjectStore = create<Store>((set) => ({
     setPreviewUrl:      (url)     => set({ previewUrl: url }),
     setCurrentProject:  (project) => set({ currentProject: project }),
 }));
+
+
+export const useGithubStore = create<GithubState & GithubActions>((set) => ({
+  connected: false,
+  username: null,
+  statusLoading: false,
+  statusError: null,
+ 
+  pushing: false,
+  pushError: null,
+  lastPushResult: null,
+ 
+ 
+  loadStatus: async () => {
+    set({ statusLoading: true, statusError: null });
+    try {
+      const status: GithubStatus = await fetchGithubStatus();
+      set({
+        connected: status.connected,
+        username: status.username,
+        statusLoading: false,
+      });
+    } catch (err) {
+      set({
+        statusLoading: false,
+        statusError: err instanceof Error ? err.message : "Failed to load status",
+      });
+    }
+  },
+ 
+  connect: () => {
+    redirectToGithubConnect();
+  },
+ 
+  disconnect: async () => {
+    set({ statusLoading: true, statusError: null });
+    try {
+      await disconnectGithub();
+      set({ connected: false, username: null, statusLoading: false });
+    } catch (err) {
+      set({
+        statusLoading: false,
+        statusError: err instanceof Error ? err.message : "Failed to disconnect",
+      });
+    }
+  },
+
+  push: async (projectId, repoName) => {
+    set({ pushing: true, pushError: null, lastPushResult: null });
+    try {
+      const result = await pushProjectToGithub({ projectId, repoName });
+      set({ pushing: false, lastPushResult: result });
+      return result;
+    } catch (err) {
+      set({
+        pushing: false,
+        pushError: err instanceof Error ? err.message : "Push failed",
+      });
+      return null;
+    }
+  },
+ 
+  resetPush: () => {
+    set({ pushing: false, pushError: null, lastPushResult: null });
+  },
+}));
+ 
