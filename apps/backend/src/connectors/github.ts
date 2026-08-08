@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { requireAuth } from "../middlewares/auth.middleware";
 import { prisma } from "@repo/db";
 import { decrypt, encrypt } from "../crypto";
+import { pushProjectToGithub } from "./github-push";
 
 interface GithubTokenResponse {
     access_token?: string,
@@ -36,7 +37,7 @@ router.get("/connect" , requireAuth , (req, res) => {
 
     const params = new URLSearchParams({
         client_id : GITHUB_CLIENT_ID,
-        redirect_url : GITHUB_REDIRECT_URL,
+        redirect_uri : GITHUB_REDIRECT_URL,
         scope : "repo read:user",
         state
     });
@@ -59,12 +60,12 @@ router.get("/callback", requireAuth ,async (req, res, next) => {
 
         const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
             method : "POST",
-            headers : {"Content-Type" : "appliction/json" , Accept : "appliction/json"},
+            headers : {"Content-Type" : "application/json" , Accept : "application/json"},
             body : JSON.stringify({
                 client_id : GITHUB_CLIENT_ID,
                 client_secret : GITHUB_CLIENT_SECRET,
                 code,
-                redirect_url : GITHUB_REDIRECT_URL,
+                redirect_uri : GITHUB_REDIRECT_URL,
             }),
         });
         const tokenData   = await tokenRes.json() as GithubTokenResponse;
@@ -102,7 +103,7 @@ router.get("/callback", requireAuth ,async (req, res, next) => {
     }
 });
 
-router.get("status" , requireAuth , async(req , res , next) => {
+router.get("/status" , requireAuth , async(req , res , next) => {
     try {
         const ownerId = (req).ownerId as string;
         const conn = await prisma.connection.findUnique({
@@ -113,7 +114,7 @@ router.get("status" , requireAuth , async(req , res , next) => {
     } catch (error) {
         next(error)
     }
-})
+}) 
 
 router.delete("/" , requireAuth , async (req , res , next) => {
     try {
@@ -125,6 +126,24 @@ router.delete("/" , requireAuth , async (req , res , next) => {
     } catch (error) {
         next(error)
     }
+})
+router.post("/push" , requireAuth , async (req , res , next) => {
+   try {
+    const ownerId = req.ownerId as string;
+    const {projectId , repoName} = req.body as {projectId : string, repoName : string}
+
+    if(!projectId || !repoName) {
+        return res.status(400).json("missing projectId and reponame")
+    }
+
+    const result = await pushProjectToGithub(ownerId , projectId , repoName)
+    res.json(result)
+
+   } catch (error) {
+    next(error)
+   }
+
+
 })
 
 export async function getGithubToken(ownerId : string) : Promise<string | null> {
