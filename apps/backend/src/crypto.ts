@@ -4,6 +4,7 @@ const ALGO = "aes-256-gcm";
 const KEY = Buffer.from(process.env.CONNECTION_ENCRYPTION_KEY!, "hex");
 
 export function encrypt(text: string) : string{
+    //iv = initialization vector
 const iv = crypto.randomBytes(12);
 const cipher = crypto.createCipheriv(ALGO, KEY , iv);
 const enc = Buffer.concat([cipher.update(text, "utf-8") , cipher.final()]);
