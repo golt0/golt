@@ -1,5 +1,6 @@
 "use client";
 
+import { GithubConnector } from "@/app/components/GithubConnector";
 import MyProjects from "@/app/components/MyProjects";
 import {
   createProject,
@@ -143,6 +144,9 @@ export default function DashboardPage() {
               >
                 {loading ? "Building..." : "Build →"}
               </button>
+            </div>
+            <div>
+              <GithubConnector />
             </div>
           </div>
         </div>
