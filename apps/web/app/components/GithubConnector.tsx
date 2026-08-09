@@ -26,7 +26,7 @@ interface PushModalProps {
   onClose: () => void;
 }
 
-function PushModal({ projectId, onClose }: PushModalProps) {
+export function PushModal({ projectId, onClose }: PushModalProps) {
   const { pushing, pushError, lastPushResult, push, resetPush } =
     useGithubStore();
   const [repoName, setRepoName] = useState("");
