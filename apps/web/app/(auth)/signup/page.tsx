@@ -1,6 +1,7 @@
 "use client";
 
 import { setToken, signup } from "@/app/lib/api";
+import { useGithubStore } from "@/store/project.store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -20,6 +21,7 @@ export default function SignupPage() {
         try {
             const data = await signup(name , email , password);
             setToken(data.token);
+            useGithubStore.getState().reset();
             router.push('/dashboard')
         } catch (error) {
             setLoading(false)
