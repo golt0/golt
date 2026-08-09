@@ -1,6 +1,7 @@
 "use client";
 
 import { login, setToken } from "@/app/lib/api";
+import { useGithubStore } from "@/store/project.store";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
@@ -22,6 +23,7 @@ export default function LoginPage() {
        try {
         const data = await login(email , password);
         setToken(data.token);
+        useGithubStore.getState().reset();
         router.push('/dashboard')
 
        } catch (error) {
