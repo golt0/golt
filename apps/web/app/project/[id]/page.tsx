@@ -11,9 +11,11 @@ import {
   startSandbox,
   isAuthError,
 } from "@/app/lib/api"
-import { useProjectStore } from "@/store/project.store"
+import { useGithubStore, useProjectStore } from "@/store/project.store"
 import ProjectTabs from "@/app/components/ProjectMenu";
 import Chat from "@/app/components/Chat";
+import { PushModal } from "@/app/components/GithubConnector";
+import Link from "next/link";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +42,14 @@ export default function ProjectPage() {
   const [input, setInput] = useState("");
   const [fetching, setFetching] = useState(true);
   const [activeTab, setActiveTab] = useState("preview");
+  const [showPushModal, setShowPushModal] = useState(false);
+
+  const { connected: githubConnected, loadStatus: loadGithubStatus } =
+    useGithubStore();
+
+  useEffect(() => {
+    loadGithubStatus();
+  }, [loadGithubStatus]);
 
   useEffect(() => {
     async function init() {
@@ -205,17 +215,43 @@ export default function ProjectPage() {
            setActiveTab={setActiveTab}
            />
 
-          {previewUrl && (
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute right-4 text-xs text-neutral-500 hover:text-white"
-            >
-              Open ↗
-            </a>
-          )}
+          <div className="absolute right-4 flex items-center gap-3">
+            {githubConnected ? (
+              <button
+                onClick={() => setShowPushModal(true)}
+                className="text-xs text-neutral-500 hover:text-white"
+              >
+                Push to GitHub
+              </button>
+            ) : (
+              <Link
+                href="/settings/connectors"
+                className="text-xs text-neutral-500 hover:text-white"
+                title="Connect GitHub to push this project"
+              >
+                Connect GitHub to push
+              </Link>
+            )}
+
+            {previewUrl && (
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-neutral-500 hover:text-white"
+              >
+                Open ↗
+              </a>
+            )}
+          </div>
         </div>
+
+        {showPushModal && (
+          <PushModal
+            projectId={id}
+            onClose={() => setShowPushModal(false)}
+          />
+        )}
 
         {activeTab === "preview" ? (
           previewUrl ? (
