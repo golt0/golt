@@ -87,6 +87,16 @@ router.get("/callback",async (req, res, next) => {
         });
         const ghUser = await userRes.json() as GithubUser;
 
+        const existing = await prisma.connection.findFirst({
+            where: { provider: "github", externalId: String(ghUser.id) },
+        });
+
+        if (existing && existing.ownerId !== ownerId) {
+            return res.redirect(
+                `${FRONTEND_URL}/settings/connectors?github=error&reason=already_linked`
+            );
+        }
+
         await prisma.connection.upsert({
             where : {ownerId_provider : {ownerId ,provider : "github"}},
             create : {
