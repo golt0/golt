@@ -191,14 +191,32 @@ export function GithubConnector({ projectId }: GithubConnectorProps) {
   } = useGithubStore();
 
   const [showPushModal, setShowPushModal] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+  const [wrongAccount, setWrongAccount] = useState(false);
 
   useEffect(() => {
     loadStatus();
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get("github") === "connected") {
+    const githubParam = params.get("github");
+
+    if (githubParam === "connected") {
+      setConnectError(null);
+      setWrongAccount(false);
+    } else if (githubParam === "error") {
+      const alreadyLinked = params.get("reason") === "already_linked";
+      setConnectError(
+        alreadyLinked
+          ? "This browser is signed into a GitHub account that's already connected to a different user."
+          : "Failed to connect GitHub. Please try again."
+      );
+      setWrongAccount(alreadyLinked);
+    }
+
+    if (githubParam) {
       const url = new URL(window.location.href);
       url.searchParams.delete("github");
+      url.searchParams.delete("reason");
       window.history.replaceState({}, "", url.toString());
     }
   }, [loadStatus]);
@@ -266,10 +284,25 @@ export function GithubConnector({ projectId }: GithubConnectorProps) {
         </div>
 
         
-        {statusError && (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
-            {statusError}
-          </p>
+        {(statusError || connectError) && (
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+            <p>{statusError || connectError}</p>
+            {wrongAccount && (
+              <p className="mt-1.5">
+                GitHub doesn't let apps force a re-login, so to connect a
+                different account:{" "}
+                <a
+                  href="https://github.com/logout"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium underline hover:text-red-800"
+                >
+                  sign out of GitHub
+                </a>{" "}
+                in that tab, then come back and click Connect GitHub again.
+              </p>
+            )}
+          </div>
         )}
       </div>
 
