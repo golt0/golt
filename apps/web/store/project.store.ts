@@ -43,7 +43,19 @@ interface  GithubActions {
     disconnect : () => Promise<void>
     push : (projectId : string, repoName : string) => Promise<PushResult | null>
     resetPush: () => void;
+    reset: () => void;
 }
+
+const githubInitialState: GithubState = {
+  connected: false,
+  username: null,
+  statusLoading: false,
+  statusError: null,
+
+  pushing: false,
+  pushError: null,
+  lastPushResult: null,
+};
 
 
 
@@ -120,18 +132,11 @@ export const useProjectStore = create<Store>((set) => ({
 
 
 export const useGithubStore = create<GithubState & GithubActions>((set) => ({
-  connected: false,
-  username: null,
-  statusLoading: false,
-  statusError: null,
- 
-  pushing: false,
-  pushError: null,
-  lastPushResult: null,
- 
- 
+  ...githubInitialState,
+
   loadStatus: async () => {
-    set({ statusLoading: true, statusError: null });
+
+    set({ connected: false, username: null, statusLoading: true, statusError: null });
     try {
       const status: GithubStatus = await fetchGithubStatus();
       set({
@@ -140,12 +145,17 @@ export const useGithubStore = create<GithubState & GithubActions>((set) => ({
         statusLoading: false,
       });
     } catch (err) {
+
       set({
+        connected: false,
+        username: null,
         statusLoading: false,
         statusError: err instanceof Error ? err.message : "Failed to load status",
       });
     }
   },
+
+  reset: () => set({ ...githubInitialState }),
  
   connect: () => {
     redirectToGithubConnect();
