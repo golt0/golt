@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { getMe, logout } from "../lib/api";
+import { useGithubStore } from "@/store/project.store";
 
 interface User  {
  id : string;
@@ -46,6 +47,7 @@ export default function UserDropdownMenu() {
   },  []);
 
   const handleSignOut = () => {
+    useGithubStore.getState().reset();
     if(typeof logout === "function") {
         logout();
     } else {
