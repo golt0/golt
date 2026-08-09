@@ -10,6 +10,27 @@ import { SYSTEM_PROMPT } from "./systemPrompt";
 
 const MAX_ITERATIONS = 10;
 
+async function execWithRetry(
+  containerId: string,
+  cmd: string,
+  retries = 2,
+  delayMs = 3000
+) {
+  let result = await execInContainer(containerId, cmd);
+  let attempt = 0;
+
+  while (result.exitCode !== 0 && attempt < retries) {
+    attempt++;
+    console.log(
+      `[retry] "${cmd}" failed (exit ${result.exitCode}), retrying (${attempt}/${retries})...`
+    );
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    result = await execInContainer(containerId, cmd);
+  }
+
+  return result;
+}
+
 export async function runAgent(projectId: string, userMessage: string) {
   try {
     await prisma.message.create({
@@ -92,7 +113,7 @@ export async function runAgent(projectId: string, userMessage: string) {
     if (!isDone && containerId) {
       console.log("Installing dependencies ...")
 
-      const install = await execInContainer(containerId, "bun install")
+      const install = await execWithRetry(containerId, "bun install")
 
       console.log("Install Exit Code:", install.exitCode)
       console.log("Install stdout:\n", install.stdout)
