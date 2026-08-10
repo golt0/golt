@@ -3,7 +3,7 @@ import { emitToProject } from "./ws";
 import { ensureSandbox } from "./sandbox";
 import { askLLM, assistantMessage, toolResultMessage } from "./gemini";
 import { TOOL_DEFINITIONS, executeTool } from "./tools";
-import { execInContainer } from "./docker";
+import { execInContainer } from "./e2b";
 import { SYSTEM_PROMPT } from "./systemPrompt";
 
 
