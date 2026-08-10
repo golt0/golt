@@ -1,6 +1,6 @@
 import { prisma } from "@repo/db";
-import { createAndStart, exec, stopContainer, writeFiles } from "./docker";
-import net from "net"
+import { createAndStart, execInContainer, stopContainer, writeFiles } from "./e2b";
+import { Sandbox } from "e2b";
 
 const inFlight = new Map<string, Promise<Awaited<ReturnType<typeof createSandbox>>>>();
 
@@ -19,7 +19,7 @@ async function createSandbox(projectId : string) {
     console.log("[1] ensureSandbox", projectId);
     const existing = await prisma.sandboxPod.findUnique({
         where : {projectId}
-        
+
     })
 
      console.log("[2] existing", existing);
@@ -34,30 +34,32 @@ async function createSandbox(projectId : string) {
       create: { projectId, status: 'creating' }
    })
 
-    const port = await findFreePort(4000, 5000);
-    console.log("[3] port", port);
-    console.log("[CREATING CONTAINER]", projectId);
-    const containerId = await createAndStart(projectId, port);
-    console.log("[4] containerId", containerId);
+    console.log("[CREATING SANDBOX]", projectId);
+    const containerId = await createAndStart(projectId);
+    console.log("[3] containerId", containerId);
 
 
     const files =  await prisma.projectFile.findMany({
         where : {projectId}
     })
-    console.log("[5] files", files.length);
+    console.log("[4] files", files.length);
 
     await writeFiles(containerId , files)
-    console.log("[6] files written");
-    await exec(containerId, [
-        "sh", "-c",
-         "cd /app && bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/vite.log 2>&1 &"
-       ]);
-           console.log("[7] Vite started"); 
+    console.log("[5] files written");
+    await execInContainer(
+        containerId,
+        "cd /app && bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/vite.log 2>&1 &"
+    );
+    console.log("[6] Vite started");
+
+    const sandbox = await Sandbox.connect(containerId);
+    const previewUrl = `https://${sandbox.getHost(5173)}`;
+    console.log("[7] previewUrl", previewUrl);
+
     const pod = await prisma.sandboxPod.update({
         where : {projectId},
         data : {
             status : "running",
-            // previewUrl: `http://localhost:${port}`,
             containerId,
             lastHeartbeat : new Date()
         }
@@ -66,25 +68,9 @@ async function createSandbox(projectId : string) {
 
     await prisma.project.update({
         where : {id :projectId},
-        data : {previewUrl : `http://localhost:${port}`}
+        data : {previewUrl}
     })
     return pod;
-}
-
-
-export async function findFreePort(start :any , end : any) {
-    for(let port = start ; port <= end; port++) {
-        const free = await new Promise((resolve) => {
-            const server = net.createServer();
-            server.listen(port , () => {
-                server.close(() => resolve(true))
-            });
-            server.on('error' , () => resolve(false))
-        })
-
-        if(free) return port;
-    }
-    throw new Error(`No free port found between ${start} and ${end}`)
 }
 
 export async function stopSandbox(projectId :string) {
@@ -93,7 +79,7 @@ export async function stopSandbox(projectId :string) {
     })
 
     if(!sandboxPod || !sandboxPod.containerId) {
-       return 
+       return
     }
 
     await stopContainer(sandboxPod.containerId);
