@@ -1,6 +1,6 @@
 import { prisma } from "@repo/db";
 import { emitToProject } from "./ws";
-import { writeFiles, readFile, execInContainer } from "./docker";
+import { writeFiles, readFile, execInContainer } from "./e2b";
 import OpenAI from "openai";
 
 export const TOOL_DEFINITIONS : OpenAI.Chat.ChatCompletionTool[] = [
