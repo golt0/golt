@@ -8,6 +8,8 @@ WORKDIR /app
 COPY template/package.json .
 RUN bun install
 
+COPY template/ .
+RUN chown -R user:user /app
 
 EXPOSE 5173
 
