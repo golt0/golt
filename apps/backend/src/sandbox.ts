@@ -1,5 +1,5 @@
 import { prisma } from "@repo/db";
-import { createAndStart, execInContainer, stopContainer, writeFiles } from "./e2b";
+import { createAndStart, runInBackground, stopContainer, writeFiles } from "./e2b";
 import { Sandbox } from "e2b";
 
 const inFlight = new Map<string, Promise<Awaited<ReturnType<typeof createSandbox>>>>();
@@ -46,9 +46,9 @@ async function createSandbox(projectId : string) {
 
     await writeFiles(containerId , files)
     console.log("[5] files written");
-    await execInContainer(
+    await runInBackground(
         containerId,
-        "cd /app && bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/vite.log 2>&1 &"
+        "cd /app && bun run dev -- --host 0.0.0.0 --port 5173 > /tmp/vite.log 2>&1"
     );
     console.log("[6] Vite started");
 
