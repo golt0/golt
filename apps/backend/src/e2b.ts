@@ -1,6 +1,7 @@
 import { Sandbox } from "e2b";
 
 const TEMPLATE = "sandbox-base";
+const SANDBOX_TIMEOUT_MS = 15 * 60 * 1000; 
 
 async function getSandbox(sandboxId: string): Promise<Sandbox> {
     return Sandbox.connect(sandboxId);
@@ -12,6 +13,7 @@ export async function createAndStart(projectId: string) {
             metadata: {
                 projectId,
             },
+            timeoutMs: SANDBOX_TIMEOUT_MS,
         });
 
         return sandbox.sandboxId;
@@ -28,6 +30,15 @@ export async function stopContainer(containerId: string) {
     } catch (error) {
         console.error("Error stopping sandbox:", error);
     }
+}
+
+export async function runInBackground(
+    containerId: string,
+    command: string
+): Promise<void> {
+    const sandbox = await getSandbox(containerId);
+
+    await sandbox.commands.run(command, { background: true });
 }
 
 export type ExecResult = {
