@@ -34,14 +34,13 @@ const GOLT_GRADIENT = {
 
 function LogoMark() {
   return (
-    <div
-      aria-hidden="true"
-      className="h-9 w-9 rounded-xl"
-      style={{
-        background:
-          "linear-gradient(135deg, #7C6BFF 0%, #C86BFF 35%, #E679DA 60%, #FC2B61 85%)",
-      }}
-    />
+    <div aria-hidden="true" className="h-9 w-9 rounded-xl overflow-hidden">
+      <img
+        src="/golt.png"
+        alt=""
+        className="h-full w-full object-cover"
+      />
+    </div>
   );
 }
 
