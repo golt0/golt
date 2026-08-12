@@ -1,16 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-import   authRouter  from './auth';
-import  projectsRouter  from './project';
-import  filesRouter from './files';
-import  chatRouter  from './chat';
-import  sandboxRouter  from './sandbox.route';
+import authRouter from './auth';
+import projectsRouter from './project';
+import filesRouter from './files';
+import chatRouter from './chat';
+import sandboxRouter from './sandbox.route';
 import githubRouter from "./connectors/github";
 export const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' , credentials : true }));
+app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000', credentials: true }));
 app.use(express.json());
-app.use('/github' , githubRouter);
+app.use('/github', githubRouter);
 
 
 app.use('/auth', authRouter);
