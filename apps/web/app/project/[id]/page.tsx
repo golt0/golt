@@ -16,6 +16,7 @@ import ProjectTabs from "@/app/components/ProjectMenu";
 import Chat from "@/app/components/Chat";
 import { PushModal } from "@/app/components/GithubConnector";
 import Link from "next/link";
+import { CLARIFY_MARKER } from "@/app/components/Chat";
 
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
@@ -132,6 +133,16 @@ export default function ProjectPage() {
           useProjectStore.getState().appendToken(data.text ?? "")
         }
 
+        if (eventName === "agent:clarification") {
+          useProjectStore.getState().setLastAssistantContent(
+            CLARIFY_MARKER + JSON.stringify({
+              reasoning: data.reasoning ?? "",
+              questions: data.questions ?? [],
+            })
+          );
+          setIsAgentThinking(false);
+        }
+
         if (eventName === "file:written") {
           const file = {
             path: data.path,
@@ -145,7 +156,10 @@ export default function ProjectPage() {
 
         if (eventName === "agent:done") {
           setIsAgentThinking(false);
-          if (data.error) console.error("Agent error:", data.error); 
+          if (data.summary) {
+            useProjectStore.getState().setLastAssistantContent(data.summary);
+          }
+          if (data.error) console.error("Agent error:", data.error);
         }
       } catch (error) {
         console.error("ws parse error", error)
