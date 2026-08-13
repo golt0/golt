@@ -71,6 +71,7 @@ type Store = {
     setMessages:        (messages: Message[]) => void;
     addMessage:         (message: Message) => void;
     appendToken:        (text: string) => void;
+    setLastAssistantContent: (content: string) => void;
     setFiles:           (files: File[]) => void;
     upsertFile:         (file: File) => void;
     setSelectedFile:    (file: File | null) => void;
@@ -104,6 +105,17 @@ export const useProjectStore = create<Store>((set) => ({
                 ...last,
                 content: last.content + text  
             };
+        }
+
+        return { messages };
+    }),
+
+    setLastAssistantContent: (content) => set((state) => {
+        const messages = [...state.messages];
+        const last = messages[messages.length - 1];
+
+        if (last && last.role === 'assistant') {
+            messages[messages.length - 1] = { ...last, content };
         }
 
         return { messages };
