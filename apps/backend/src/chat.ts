@@ -36,7 +36,7 @@ router.get("/:projectId/messages", requireAuth, async(req , res) => {
         where : {id : projectId}
     })
 
-    if(!project) {
+    if(!project || project.ownerId !== ownerId) {
         return res.status(400).json({error : "project is not found"})
     }
 
