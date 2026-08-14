@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react";
 import { getMessages, sendMessages } from "../lib/api";
 
+export const CLARIFY_MARKER = "__CLARIFY__";
+
+type ClarificationQuestion = {
+  id: string;
+  question: string;
+  type: "options" | "text";
+  options?: string[];
+};
+
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
@@ -149,6 +158,10 @@ function MessageCard({ msg }: { msg: any }) {
     );
   }
 
+  if (typeof msg.content === "string" && msg.content.startsWith(CLARIFY_MARKER)) {
+    return <ClarificationCard raw={msg.content} />;
+  }
+
 
   return (
     <div className="mr-6 bg-[#1f1f1d] border border-[#41413E] rounded-2xl p-3">
@@ -181,6 +194,97 @@ function MessageCard({ msg }: { msg: any }) {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function ClarificationCard({ raw }: { raw: string }) {
+  const { id } = useParams<{ id: string }>();
+  const { addMessage, isAgentThinking, setIsAgentThinking } = useProjectStore();
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  let payload: { reasoning: string; questions: ClarificationQuestion[] } | null = null;
+  try {
+    payload = JSON.parse(raw.slice(CLARIFY_MARKER.length));
+  } catch {
+    payload = null;
+  }
+
+  if (!payload) return null;
+  const { reasoning, questions } = payload;
+
+  const allAnswered = questions.every((q) => (answers[q.id] ?? "").trim().length > 0);
+
+  async function handleSubmit() {
+    if (!allAnswered || submitted || isAgentThinking) return;
+
+    const content = [
+      "Answers to your clarifying questions:",
+      ...questions.map((q) => `- ${q.question}: ${answers[q.id]}`),
+    ].join("\n");
+
+    setSubmitted(true);
+    addMessage({
+      id: `user-${Date.now()}`,
+      role: "user",
+      content,
+      projectId: id,
+    });
+    setIsAgentThinking(true);
+
+    try {
+      await sendMessages(id, content);
+    } catch (error) {
+      console.error("Failed to send clarification answers", error);
+      setIsAgentThinking(false);
+    }
+  }
+
+  return (
+    <div className="mr-6 bg-[#1f1f1d] border border-[#41413E] rounded-2xl p-3 space-y-3">
+      <div className="text-sm font-medium text-white">{reasoning}</div>
+
+      {questions.map((q) => (
+        <div key={q.id} className="space-y-1.5">
+          <div className="text-xs text-gray-400">{q.question}</div>
+
+          {q.type === "options" && q.options?.length ? (
+            <div className="flex flex-wrap gap-2">
+              {q.options.map((opt) => (
+                <button
+                  key={opt}
+                  disabled={submitted}
+                  onClick={() => setAnswers((a) => ({ ...a, [q.id]: opt }))}
+                  className={`px-3 py-1 text-xs rounded-lg border ${
+                    answers[q.id] === opt
+                      ? "bg-white text-black border-white"
+                      : "bg-neutral-800 text-gray-300 border-[#41413E] hover:bg-neutral-700"
+                  }`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <input
+              disabled={submitted}
+              value={answers[q.id] ?? ""}
+              onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+              placeholder="Type your answer..."
+              className="w-full bg-neutral-900 border border-[#41413E] rounded-lg px-3 py-1.5 text-xs outline-none focus:border-neutral-500"
+            />
+          )}
+        </div>
+      ))}
+
+      <button
+        onClick={handleSubmit}
+        disabled={!allAnswered || submitted || isAgentThinking}
+        className="px-3 py-1.5 text-xs rounded-lg bg-white text-black disabled:opacity-40"
+      >
+        {submitted ? "Answered" : "Submit"}
+      </button>
     </div>
   );
 }
