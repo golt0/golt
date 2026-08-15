@@ -83,7 +83,7 @@ router.delete("/:projectId/files" , requireAuth, async (req, res, next) => {
           where : {projectId_path: {projectId , path}}
       })
   
-      return res.status(400).json({
+      return res.status(200).json({
           error : "deleted successfully"
       })
   } catch (error) {
